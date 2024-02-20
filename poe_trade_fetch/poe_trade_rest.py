@@ -72,24 +72,40 @@ def fetch_listings(trade_url, payload, header):
     return df
 
 class Payload:
-    def __init__(self, status="online", item_type="", league="Affliction", price_sort="asc") -> None:
+    def __init__(self, status="online", item_type="", league="Affliction", max_quality=None, sort_by="price", sort_order="asc") -> None:
         self.status = status
         self.item_type = item_type
         self.league = league
-        self.price_sort = price_sort
+        self.sort_by = sort_by
+        self.sort_order = sort_order
+        self.max_quality = max_quality
+
+        match sort_by:
+            case "price":
+                sort_field = "price"
+            case "gem_level":
+                sort_field = "gem_level"
+            case _:
+                sort_field = "price"
+
+        filters = {}
+        if self.max_quality is not None:
+            filters = {"filters":{"misc_filters":{"filters":{"quality":{"max": self.max_quality}}}}}
+
         self.query = {
             "query": {
                 "status": {"option": self.status},
                 "type": self.item_type,
-                "stats":[{"type":"and","filters":[]}]
+                "stats":[{"type":"and","filters":[]}],
+                **filters
             },
-            "sort":{"price": self.price_sort}
+            "sort":{sort_field: self.sort_order}
         }
 
 # payload = Payload(item_type="Awakened Spell Echo Support")
-def fetch_all_listings(item_names, header, trade_url):
+def fetch_all_listings(item_names, header, trade_url, max_quality, sort_by):
     for item in item_names:
-        payload = Payload(item_type=item)
+        payload = Payload(item_type=item, max_quality=max_quality, sort_by=sort_by)
         item_words = item.split()
         listing = fetch_listings(trade_url, payload.query, header)
         listing.to_csv(f"{'_'.join(item_words)}.csv")

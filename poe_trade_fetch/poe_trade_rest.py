@@ -80,15 +80,15 @@ class ListingFetcher:
         item_words=self.payload.item_type.split()
         df.to_csv(f"{'_'.join(item_words)}.csv")
 
-
+#TO DO: gem level filter, corruption filter
 class Payload:
-    def __init__(self, status="online", item_type="", league="Affliction", max_quality=None, sort_by="price", sort_order="asc") -> None:
+    def __init__(self, status="online", item_type="", league="Affliction", min_quality=None, sort_by="price", sort_order="asc") -> None:
         self.status = status
         self.item_type = item_type
         self.league = league
         self.sort_by = sort_by
         self.sort_order = sort_order
-        self.max_quality = max_quality
+        self.min_quality = min_quality
 
         match sort_by:
             case "price":
@@ -99,8 +99,8 @@ class Payload:
                 sort_field = "price"
 
         filters = {}
-        if self.max_quality is not None:
-            filters = {"filters":{"misc_filters":{"filters":{"quality":{"max": self.max_quality}}}}}
+        if self.min_quality is not None:
+            filters = {"filters":{"misc_filters":{"filters":{"quality":{"min": self.min_quality}}}}}
 
         self.query = {
             "query": {

@@ -31,6 +31,7 @@ class ListingFetcher:
                 item_level = prop['values'][0][0]
             elif prop['name'] == 'Quality':
                 item_quality = prop['values'][0][0]
+            
         return item_level, item_quality
 
     def extract_gem_experience(self, additional_properties):
@@ -48,6 +49,7 @@ class ListingFetcher:
 
                 item_name = item_info.get('typeLine', '')
                 item_properties = item_info.get('properties', [])
+                item_corrupted = item_info.get('corrupted', False) 
                 item_level, item_quality = self.extract_properties(item_properties)
                 gem_experience = self.extract_gem_experience(item_info.get('additionalProperties', []))
 
@@ -62,6 +64,7 @@ class ListingFetcher:
                     'Item Name': item_name,
                     'Item Level': item_level,
                     'Item Quality': item_quality,
+                    'Corrupted': item_corrupted,
                     'Experience': gem_experience,
                     'Indexed': indexed,
                     'Stash Name': stash_name,

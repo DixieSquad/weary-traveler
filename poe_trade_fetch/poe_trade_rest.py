@@ -31,6 +31,7 @@ class ListingFetcher:
                 item_level = prop['values'][0][0]
             elif prop['name'] == 'Quality':
                 item_quality = prop['values'][0][0]
+            
         return item_level, item_quality
 
     def extract_gem_experience(self, additional_properties):
@@ -48,6 +49,7 @@ class ListingFetcher:
 
                 item_name = item_info.get('typeLine', '')
                 item_properties = item_info.get('properties', [])
+                item_corrupted = item_info.get('corrupted', False) 
                 item_level, item_quality = self.extract_properties(item_properties)
                 gem_experience = self.extract_gem_experience(item_info.get('additionalProperties', []))
 
@@ -62,6 +64,7 @@ class ListingFetcher:
                     'Item Name': item_name,
                     'Item Level': item_level,
                     'Item Quality': item_quality,
+                    'Corrupted': item_corrupted,
                     'Experience': gem_experience,
                     'Indexed': indexed,
                     'Stash Name': stash_name,
@@ -82,13 +85,14 @@ class ListingFetcher:
 
 #TO DO: gem level filter, corruption filter
 class Payload:
-    def __init__(self, status="online", item_type="", league="Affliction", min_quality=None, sort_by="price", sort_order="asc") -> None:
+    def __init__(self, status="online", item_type="", league="Affliction", min_quality=None, sort_by="price", corrupt="true", sort_order="asc") -> None:
         self.status = status
         self.item_type = item_type
         self.league = league
         self.sort_by = sort_by
         self.sort_order = sort_order
         self.min_quality = min_quality
+        self.corrupt = corrupt
 
         match sort_by:
             case "price":
@@ -101,6 +105,9 @@ class Payload:
         filters = {}
         if self.min_quality is not None:
             filters = {"filters":{"misc_filters":{"filters":{"quality":{"min": self.min_quality}}}}}
+
+        if self.corrupt is not None:
+            filters = {"filters":{"misc_filters":{"filters":{"corrupted":{"option": self.corrupt}}}}}
 
         self.query = {
             "query": {

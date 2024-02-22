@@ -83,7 +83,6 @@ class ListingFetcher:
         item_words=self.payload.item_type.split()
         df.to_csv(f"{'_'.join(item_words)}.csv")
 
-#TO DO: gem level filter, corruption filter
 class Payload:
     def __init__(self, status="online", item_type="", league="Affliction", min_quality=None, sort_by="price", corrupt=None, sort_order="asc") -> None:
         self.status = status
@@ -103,12 +102,16 @@ class Payload:
                 sort_field = "price"
 
         filters = {}
-        if self.min_quality is not None:
-            filters = {"filters":{"misc_filters":{"filters":{"quality":{"min": self.min_quality}}}}}
 
-        if self.corrupt is not None:
-            filters = {"filters":{"misc_filters":{"filters":{"corrupted":{"option": self.corrupt}}}}}
+        if self.min_quality is not None or self.corrupt is not None:
+            filters["filters"] = {"misc_filters": { "filters": {}}}
 
+            if self.min_quality is not None:
+                filters["filters"]["misc_filters"]["filters"]["quality"] = {"min": self.min_quality}
+
+            if self.corrupt is not None:
+                filters["filters"]["misc_filters"]["filters"]["corrupted"] = {"option": self.corrupt}
+                
         self.query = {
             "query": {
                 "status": {"option": self.status},
@@ -127,6 +130,4 @@ def fetch_all_listings(listing_item, properties, header, trade_url):
         fetcher = ListingFetcher(trade_url, header, payload)
         fetcher.save_data()
         time.sleep(10)
-
-# poe_trade_df = poe_trade_rest.fetch_listings(trade_url, payload.query, header)
 

@@ -85,7 +85,7 @@ class ListingFetcher:
 
 #TO DO: gem level filter, corruption filter
 class Payload:
-    def __init__(self, status="online", item_type="", league="Affliction", min_quality=None, sort_by="price", corrupt="true", sort_order="asc") -> None:
+    def __init__(self, status="online", item_type="", league="Affliction", min_quality=None, sort_by="price", corrupt=None, sort_order="asc") -> None:
         self.status = status
         self.item_type = item_type
         self.league = league
@@ -121,9 +121,9 @@ class Payload:
 
 # payload = Payload(item_type="Awakened Spell Echo Support")
 
-def fetch_all_listings(item_names, header, trade_url):
-    for item in item_names:
-        payload = Payload(item_type=item)
+def fetch_all_listings(listing_item, properties, header, trade_url):
+    for name in listing_item:
+        payload = Payload(item_type=name, status=properties['status'], league=properties['league'], min_quality=properties['min_quality'], sort_by=properties['sort_by'], corrupt=properties['corrupt'], sort_order=properties['sort_order'])
         fetcher = ListingFetcher(trade_url, header, payload)
         fetcher.save_data()
         time.sleep(10)

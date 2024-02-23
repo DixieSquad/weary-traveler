@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import time
+import os
 
 
 class ListingFetcher:
@@ -88,7 +89,12 @@ class ListingFetcher:
     def save_data(self):
         df = pd.DataFrame(self.extract_data())
         item_words = self.payload.item_type.split()
-        df.to_csv(f"{'_'.join(item_words)}.csv")
+        current_working_dir = os.getcwd()
+        folder_path = os.path.join(current_working_dir, "data")
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        file_path = os.path.join(folder_path, f"{'_'.join(item_words)}.csv")
+        df.to_csv(file_path)
 
 
 class Payload:

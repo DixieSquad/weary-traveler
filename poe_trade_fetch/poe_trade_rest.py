@@ -106,6 +106,7 @@ class Payload:
         min_quality=None,
         sort_by="price",
         corrupt=None,
+        max_gem_level=None,
         sort_order="asc",
     ) -> None:
         self.status = status
@@ -115,6 +116,7 @@ class Payload:
         self.sort_order = sort_order
         self.min_quality = min_quality
         self.corrupt = corrupt
+        self.max_gem_level = max_gem_level
 
         match sort_by:
             case "price":
@@ -139,6 +141,11 @@ class Payload:
                     "option": self.corrupt
                 }
 
+            if self.max_gem_level is not None:
+                filters["filters"]["misc_filters"]["filters"]["gem_level"] = {
+                    "max": self.max_gem_level,
+                }
+
         self.query = {
             "query": {
                 "status": {"option": self.status},
@@ -159,6 +166,7 @@ def fetch_all_listings(listing_item, properties, header, trade_url):
             min_quality=properties["min_quality"],
             sort_by=properties["sort_by"],
             corrupt=properties["corrupt"],
+            max_gem_level=properties["max_gem_level"],
             sort_order=properties["sort_order"],
         )
         fetcher = ListingFetcher(trade_url, header, payload)

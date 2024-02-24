@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import time
+import os
 
 
 class ListingFetcher:
@@ -88,7 +89,12 @@ class ListingFetcher:
     def save_data(self):
         df = pd.DataFrame(self.extract_data())
         item_words = self.payload.item_type.split()
-        df.to_csv(f"{'_'.join(item_words)}.csv")
+        current_working_dir = os.getcwd()
+        folder_path = os.path.join(current_working_dir, "data")
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        file_path = os.path.join(folder_path, f"{'_'.join(item_words)}.csv")
+        df.to_csv(file_path)
 
 
 class Payload:
@@ -100,6 +106,7 @@ class Payload:
         min_quality=None,
         sort_by="price",
         corrupt=None,
+        max_gem_level=None,
         sort_order="asc",
     ) -> None:
         self.status = status
@@ -109,6 +116,7 @@ class Payload:
         self.sort_order = sort_order
         self.min_quality = min_quality
         self.corrupt = corrupt
+        self.max_gem_level = max_gem_level
 
         match sort_by:
             case "price":
@@ -133,6 +141,11 @@ class Payload:
                     "option": self.corrupt
                 }
 
+            if self.max_gem_level is not None:
+                filters["filters"]["misc_filters"]["filters"]["gem_level"] = {
+                    "max": self.max_gem_level,
+                }
+
         self.query = {
             "query": {
                 "status": {"option": self.status},
@@ -153,6 +166,7 @@ def fetch_all_listings(listing_item, properties, header, trade_url):
             min_quality=properties["min_quality"],
             sort_by=properties["sort_by"],
             corrupt=properties["corrupt"],
+            max_gem_level=properties["max_gem_level"],
             sort_order=properties["sort_order"],
         )
         fetcher = ListingFetcher(trade_url, header, payload)

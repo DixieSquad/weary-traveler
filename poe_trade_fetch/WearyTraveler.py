@@ -5,6 +5,7 @@ import pandas as pd
 import os
 import time
 import threading
+from datetime import datetime
 
 
 class BackgroundTask(threading.Thread):
@@ -79,6 +80,22 @@ class DataFrameApp:
 
         self.load_dropdown_options()
 
+    def get_relative_time(self, timestring):
+        updated_time = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S.%f")
+        delta = datetime.now() - updated_time
+        if delta.seconds <= 120 and delta.days == 0:
+            updated = str(delta.seconds) + "s ago"
+        elif delta.seconds <= 3600 and delta.days == 0:
+            updated = str(round(delta.seconds / 60)) + " min ago"
+        elif delta.seconds <= 86400 and delta.days == 0:
+            updated = str(round(delta.seconds / 3600)) + " h ago"
+        elif delta.days <= 5:
+            updated = str(delta.days) + " days ago"
+        else:
+            updated = "5+ days ago"
+
+        return updated
+
     def toggle_background_task(self):
         if not self.running:
             self.start_background_task()
@@ -143,6 +160,7 @@ class DataFrameApp:
 
         # Add data
         for index, row in self.dataframe.iterrows():
+            row["updated"] = self.get_relative_time(row["updated"])
             self.tree_view.insert("", "end", values=list(row)[1:])
 
 

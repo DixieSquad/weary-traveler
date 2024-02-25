@@ -93,7 +93,9 @@ class ListingFetcher:
         folder_path = os.path.join(current_working_dir, "data/trade")
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
-        file_path = os.path.join(folder_path, f"{'_'.join(item_words)}.csv")
+        file_path = os.path.join(
+            folder_path, f"{'_'.join(item_words)}{self.payload.max_gem_level}.csv"
+        )
         df.to_csv(file_path)
 
 
@@ -107,6 +109,7 @@ class Payload:
         sort_by="price",
         corrupt=None,
         max_gem_level=None,
+        min_gem_level=None,
         sort_order="asc",
     ) -> None:
         self.status = status
@@ -117,6 +120,7 @@ class Payload:
         self.min_quality = min_quality
         self.corrupt = corrupt
         self.max_gem_level = max_gem_level
+        self.min_gem_level = min_gem_level
 
         match sort_by:
             case "price":
@@ -133,17 +137,28 @@ class Payload:
 
             if self.min_quality is not None:
                 filters["filters"]["misc_filters"]["filters"]["quality"] = {
-                    "min": self.min_quality
+                    "min": self.min_quality,
                 }
 
             if self.corrupt is not None:
                 filters["filters"]["misc_filters"]["filters"]["corrupted"] = {
-                    "option": self.corrupt
+                    "option": self.corrupt,
+                }
+
+            if self.max_gem_level is not None and self.min_gem_level is not None:
+                filters["filters"]["misc_filters"]["filters"]["gem_level"] = {
+                    "min": self.min_gem_level,
+                    "max": self.max_gem_level,
                 }
 
             if self.max_gem_level is not None:
                 filters["filters"]["misc_filters"]["filters"]["gem_level"] = {
                     "max": self.max_gem_level,
+                }
+
+            if self.min_gem_level is not None:
+                filters["filters"]["misc_filters"]["filters"]["gem_level"] = {
+                    "min": self.min_gem_level,
                 }
 
         self.query = {

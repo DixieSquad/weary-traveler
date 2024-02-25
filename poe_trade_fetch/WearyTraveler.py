@@ -47,9 +47,6 @@ class DataFrameApp:
         self.label1 = ttk.Label(self.top_frame, text="Select CSV file:")
         self.dropdown = ttk.Combobox(self.top_frame, textvariable=self.selected_file)
         self.dropdown.bind("<<ComboboxSelected>>", lambda event: self.load_dataframe())
-        self.button_refresh = ttk.Button(
-            self.top_frame, text="refresh", command=self.load_dataframe
-        )
         self.button_update = ttk.Button(
             self.top_frame, text="auto-update", command=self.toggle_background_task
         )
@@ -58,7 +55,6 @@ class DataFrameApp:
         # Layout widgets
         self.label1.pack(side="left", expand=False)
         self.dropdown.pack(side="left", expand=False)
-        self.button_refresh.pack(side="left", expand=False, padx=[10, 0])
         self.label_status.pack(side="right", expand=False)
         self.button_update.pack(side="right", expand=False)
 
@@ -83,6 +79,12 @@ class DataFrameApp:
 
         self.load_dropdown_options()
 
+    def auto_refresh(self):
+        if self.running:
+            print("refreshed")
+            self.load_dataframe()
+            self.root.after(10000, self.auto_refresh)
+
     def toggle_background_task(self):
         if not self.running:
             self.start_background_task()
@@ -94,6 +96,7 @@ class DataFrameApp:
             self.background_task = BackgroundTask()
             self.background_task.start()
             self.running = True
+            self.auto_refresh()
             self.button_update.config(text="Stop")
             self.label_status.config(text="Running updates...")
         else:

@@ -5,6 +5,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 import traceback
+import os
 
 url = "https://poe.ninja/economy/skill-gems"
 
@@ -58,4 +59,13 @@ def fetch_data(url):
     data["Level"] = data["Level"].astype(int)
     data["Value"] = data["Value"].astype(float)
 
-    return data
+    save_data(data)
+
+
+def save_data(data):
+    current_working_dir = os.getcwd()
+    folder_path = os.path.join(current_working_dir, "data/ninja")
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+    file_path = os.path.join(folder_path, "poe_ninja_data.csv")
+    data.to_csv(file_path)

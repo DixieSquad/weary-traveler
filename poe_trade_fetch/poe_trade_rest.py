@@ -90,7 +90,7 @@ class ListingFetcher:
         df = pd.DataFrame(self.extract_data())
         item_words = self.payload.item_type.split()
         current_working_dir = os.getcwd()
-        folder_path = os.path.join(current_working_dir, "data")
+        folder_path = os.path.join(current_working_dir, "data/trade")
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
         file_path = os.path.join(folder_path, f"{'_'.join(item_words)}.csv")

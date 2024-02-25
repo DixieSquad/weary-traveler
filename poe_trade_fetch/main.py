@@ -1,5 +1,11 @@
 import scraper
 import poe_trade_rest
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+EMAIL_ADDRESS = os.getenv("EMAIL")
 
 properties = {
     "status": "online",
@@ -12,7 +18,7 @@ properties = {
 }
 gems = ["Awakened Spell Echo Support", "Awakened Multistrike Support"]
 trade_url = "https://www.pathofexile.com/api/trade/search/Affliction"
-header = {"user-agent": "***REMOVED***"}
+header = {"user-agent": str(EMAIL_ADDRESS)}
 poe_ninja_url = "https://poe.ninja/economy/skill-gems"
 
 poe_trade_rest.fetch_all_listings(gems, properties, header, trade_url)

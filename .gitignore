@@ -2,3 +2,4 @@ poe_trade_fetch/data/
 poe_trade_fetch/__pycache__
 poe_trade_fetch/.ipynb_checkpoints
 poe_trade_fetch/poe_ninja_data.csv
+poe_trade_fetch/.env

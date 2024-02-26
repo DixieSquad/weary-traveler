@@ -56,6 +56,7 @@ def fetch_data(url):
                     items_dict[column_names[i]] = td_elements[i].text
             datalist.append(items_dict)
     data = pd.DataFrame(datalist)
+    print(data)
     data["Level"] = data["Level"].astype(int)
     data["Value"] = data["Value"].astype(float)
 

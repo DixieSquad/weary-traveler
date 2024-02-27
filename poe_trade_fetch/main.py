@@ -1,7 +1,8 @@
+import os
+
 import poe_ninja_scraper
 import poe_trade_rest
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 

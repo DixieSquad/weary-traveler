@@ -80,6 +80,12 @@ class DataFrameApp:
 
         self.load_dropdown_options()
 
+    def auto_refresh(self):
+        if self.running:
+            print("refreshed")
+            self.load_dataframe()
+            self.root.after(10000, self.auto_refresh)
+
     def get_relative_time(self, timestring):
         updated_time = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S.%f")
         delta = datetime.now() - updated_time
@@ -107,6 +113,7 @@ class DataFrameApp:
             self.background_task = BackgroundTask()
             self.background_task.start()
             self.running = True
+            self.auto_refresh()
             self.button_update.config(text="Stop")
             self.label_status.config(text="Running updates...")
         else:

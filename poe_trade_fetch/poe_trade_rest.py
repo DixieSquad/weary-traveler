@@ -1,7 +1,8 @@
-import requests
-import pandas as pd
-import time
 import os
+import time
+
+import pandas as pd
+import requests
 
 
 class ListingFetcher:

@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import datetime
 
 import pandas as pd
 import requests
@@ -198,7 +199,7 @@ class BuySellEntry:
         buy_sell_dict["Profit"] = self.calculate_profit(
             buy_sell_dict["Sell"], buy_sell_dict["Buy"]
         )
-
+        buy_sell_dict["Updated At"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return pd.Series(buy_sell_dict)
 
     def calculate_profit(self, sell_value, buy_value):

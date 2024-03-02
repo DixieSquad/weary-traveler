@@ -1,11 +1,13 @@
-import tkinter as tk
-from tkinter import ttk
-from ttkthemes import ThemedTk
-import pandas as pd
 import os
-import time
 import threading
+import time
+import tkinter as tk
 from datetime import datetime
+from tkinter import ttk
+
+import pandas as pd
+import poe_trade_rest
+from ttkthemes import ThemedTk
 
 
 class BackgroundTask(threading.Thread):
@@ -19,7 +21,8 @@ class BackgroundTask(threading.Thread):
     def run(self):
         while not self._stop_event.is_set():
             print("Background Task is running...")
-            time.sleep(1)
+            poe_trade_rest.update_oldest_entry()
+            time.sleep(10)
 
 
 class DataFrameApp:
@@ -122,7 +125,7 @@ class DataFrameApp:
     def stop_background_task(self):
         if self.background_task and self.background_task.is_alive():
             self.background_task.stop()
-            self.background_task.join()
+            self.background_task.join()  # Holds to complete application until all listings are fetched...
             self.running = False
             self.button_update.config(text="auto-update")
             self.label_status.config(text="Paused.")

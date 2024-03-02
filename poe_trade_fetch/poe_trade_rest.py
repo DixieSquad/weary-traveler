@@ -271,9 +271,7 @@ def get_oldest_entry(group_name="awakened_gems.csv"):
     if not os.path.exists(file_path):
         return None
 
-    df = pd.read_csv(file_path)
-    df["Updated At"] = pd.to_datetime(df["Updated At"])
-    oldest_index = df["Updated At"].idxmin()
-    oldest_entry = df.loc[oldest_index]
+    df = pd.read_csv(file_path).set_index("Item Name")
+    oldest_entry = df["Updated At"].idxmin()
 
-    return oldest_entry["Item Name"]
+    return oldest_entry

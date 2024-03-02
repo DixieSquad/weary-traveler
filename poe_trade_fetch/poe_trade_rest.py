@@ -225,16 +225,15 @@ class BuySellEntry:
 
         # check if file exists
         if os.path.exists(file_path):
-            df = pd.read_csv(file_path)
-            df.set_index("Item Name", inplace=True)
-
+            df = pd.read_csv(file_path, index_col="Item Name")
             # match datatypes of entry_df and file
             entry_df = entry_df.astype(df.dtypes)
-
-            df.update(entry_df)
+            df = pd.concat([df[~df.index.isin(entry_df.index)], entry_df])
+            print(df)
         else:
             df = entry_df
 
+        print(f"df to file:{df}")
         df.reset_index().to_csv(file_path, index=False)
 
 

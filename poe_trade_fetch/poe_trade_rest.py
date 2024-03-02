@@ -5,17 +5,22 @@ from datetime import datetime
 import pandas as pd
 import requests
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 class ListingFetcher:
-    def __init__(self, trade_url, header, payload) -> None:
-        self.trade_url = trade_url
-        self.header = header
+    _trade_url = "https://www.pathofexile.com/api/trade/search/Affliction"
+    _header = {"user-agent": str(os.getenv("EMAIL"))}
+
+    def __init__(self, payload) -> None:
         self.payload = payload
 
     def fetch_listing(self):
         try:
             r = requests.post(
-                self.trade_url, headers=self.header, json=self.payload.query
+                self._trade_url, headers=self._header, json=self.payload.query
             )
             r.raise_for_status()
             time.sleep(2)
@@ -23,7 +28,7 @@ class ListingFetcher:
             result_id = r.json().get("id", "")
             text_result = ",".join(result)
             fetch_url = f"https://www.pathofexile.com/api/trade/fetch/{text_result}?query={result_id}"
-            listings = requests.get(fetch_url, headers=self.header)
+            listings = requests.get(fetch_url, headers=self._header)
             r.raise_for_status()
             time.sleep(5)
             result_list = listings.json().get("result", [])
@@ -227,9 +232,7 @@ class BuySellEntry:
         df.to_csv(file_path)
 
 
-def fetch_all_listings(
-    listing_item, buy_properties, sell_properties, header, trade_url
-):
+def fetch_all_listings(listing_item, buy_properties, sell_properties):
     entries = []
     for name in listing_item:
         buy_payload = Payload(
@@ -254,8 +257,8 @@ def fetch_all_listings(
             min_gem_level=sell_properties["min_gem_level"],
             sort_order=sell_properties["sort_order"],
         )
-        buy_fetcher = ListingFetcher(trade_url, header, buy_payload)
-        sell_fetcher = ListingFetcher(trade_url, header, sell_payload)
+        buy_fetcher = ListingFetcher(buy_payload)
+        sell_fetcher = ListingFetcher(sell_payload)
 
         buy_sell_entry = BuySellEntry(
             buy_listings=buy_fetcher, sell_listings=sell_fetcher

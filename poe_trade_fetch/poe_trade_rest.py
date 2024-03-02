@@ -225,8 +225,7 @@ class BuySellEntry:
 
         # check if file exists
         if os.path.exists(file_path):
-            with open(file_path, "r") as file:
-                df = pd.read_csv(file)
+            df = pd.read_csv(file_path)
             df.set_index("Item Name", inplace=True)
 
             # match datatypes of entry_df and file
@@ -236,8 +235,7 @@ class BuySellEntry:
         else:
             df = entry_df
 
-        with open(file_path, "w") as file:
-            df.reset_index().to_csv(file, index=False)
+        df.reset_index().to_csv(file_path, index=False)
 
 
 def fetch_all_listings(listing_item, buy_properties, sell_properties):

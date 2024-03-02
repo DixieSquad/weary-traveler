@@ -152,23 +152,23 @@ class DataFrameApp:
         for child in self.tree_view.get_children():
             self.tree_view.delete(child)
 
-        self.tree_view["columns"] = list(self.dataframe.columns[1:])
+        self.tree_view["columns"] = list(self.dataframe.columns)
         # Format first column
         self.tree_view.heading(
-            self.dataframe.columns[1], text=self.dataframe.columns[1]
+            self.dataframe.columns[0], text=self.dataframe.columns[0]
         )
         self.tree_view.column(
-            self.dataframe.columns[1], anchor="w", minwidth=350, width=350
+            self.dataframe.columns[0], anchor="w", minwidth=350, width=350
         )
         # Format other columns
-        for column in self.dataframe.columns[2:]:
+        for column in self.dataframe.columns[1:]:
             self.tree_view.heading(column, text=column)
             self.tree_view.column(column, anchor="e", width=50, minwidth=50)
 
         # Add data
         for index, row in self.dataframe.iterrows():
             row["Updated At"] = self.get_relative_time(row["Updated At"])
-            self.tree_view.insert("", "end", values=list(row)[1:])
+            self.tree_view.insert("", "end", values=list(row))
 
 
 if __name__ == "__main__":

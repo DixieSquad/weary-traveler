@@ -87,7 +87,7 @@ class DataFrameApp:
             self.root.after(10000, self.auto_refresh)
 
     def get_relative_time(self, timestring):
-        updated_time = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S.%f")
+        updated_time = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S")
         delta = datetime.now() - updated_time
         if delta.seconds <= 120 and delta.days == 0:
             updated = str(delta.seconds) + "s ago"
@@ -167,7 +167,7 @@ class DataFrameApp:
 
         # Add data
         for index, row in self.dataframe.iterrows():
-            row["updated"] = self.get_relative_time(row["updated"])
+            row["Updated At"] = self.get_relative_time(row["Updated At"])
             self.tree_view.insert("", "end", values=list(row)[1:])
 
 

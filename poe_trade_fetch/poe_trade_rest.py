@@ -261,3 +261,19 @@ def fetch_all_listings(
         sell_fetcher.save_data()  # Save sell data for potential history
 
     print(pd.DataFrame(entries))
+
+
+def get_oldest_entry(group_name="awakened_gems.csv"):
+    current_working_dir = os.getcwd()
+    folder_path = os.path.join(current_working_dir, "data/profit")
+
+    file_path = os.path.join(folder_path, group_name)
+    if not os.path.exists(file_path):
+        return None
+
+    df = pd.read_csv(file_path)
+    df["Updated At"] = pd.to_datetime(df["Updated At"])
+    oldest_index = df["Updated At"].idxmin()
+    oldest_entry = df.loc[oldest_index]
+
+    return oldest_entry["Item Name"]

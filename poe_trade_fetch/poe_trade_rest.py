@@ -228,13 +228,12 @@ class BuySellEntry:
             df = pd.read_csv(file_path, index_col="Item Name")
             # match datatypes of entry_df and file
             entry_df = entry_df.astype(df.dtypes)
-            df = pd.concat([df[~df.index.isin(entry_df.index)], entry_df])
-            print(df)
+            # combines per value basis not rows. If new value doesn't exist, keep old value.
+            df = entry_df.combine_first(df)
         else:
             df = entry_df
 
-        print(f"df to file:{df}")
-        df.reset_index().to_csv(file_path, index=False)
+        df.to_csv(file_path)
 
 
 def fetch_all_listings(listing_item, buy_properties, sell_properties):
@@ -275,8 +274,6 @@ def fetch_all_listings(listing_item, buy_properties, sell_properties):
         # buy_fetcher.save_data()  # Save buy data for potential history
         # sell_fetcher.save_data()  # Save sell data for potential history
 
-    print(pd.DataFrame(entries))
-
 
 def get_oldest_entry(group_name="awakened_gems.csv"):
     current_working_dir = os.getcwd()
@@ -316,3 +313,11 @@ def get_gem_buy_sell_properties():
     }
 
     return {"buy": buy_properties, "sell": sell_properties}
+
+
+def update_oldest_entry():
+    fetch_all_listings(
+        [get_oldest_entry()],
+        get_gem_buy_sell_properties()["buy"],
+        get_gem_buy_sell_properties()["sell"],
+    )

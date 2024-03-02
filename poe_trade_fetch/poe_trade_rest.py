@@ -267,8 +267,8 @@ def fetch_all_listings(listing_item, buy_properties, sell_properties):
         entries.append(buy_sell_entry.construct_buy_sell_frame())
 
         buy_sell_entry.update_csv()  # Save profit frame for UI
-        buy_fetcher.save_data()  # Save buy data for potential history
-        sell_fetcher.save_data()  # Save sell data for potential history
+        # buy_fetcher.save_data()  # Save buy data for potential history
+        # sell_fetcher.save_data()  # Save sell data for potential history
 
     print(pd.DataFrame(entries))
 

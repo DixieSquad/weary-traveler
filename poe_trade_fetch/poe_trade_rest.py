@@ -290,14 +290,23 @@ def get_oldest_entry(group_name="awakened_gems.csv"):
 def get_gem_buy_sell_properties():
     buy_properties = {
         "payload_type": "buy",
+        "status": "online",
+        "league": "Affliction",
+        "min_quality": None,
+        "sort_by": "price",
         "corrupt": "false",
         "max_gem_level": 1,
+        "sort_order": "asc",
     }
     sell_properties = {
         "payload_type": "sell",
+        "status": "online",
+        "league": "Affliction",
         "min_quality": 20,
+        "sort_by": "price",
         "corrupt": "false",
         "min_gem_level": 5,
+        "sort_order": "asc",
     }
 
     return {"buy": buy_properties, "sell": sell_properties}

@@ -206,19 +206,6 @@ class BuySellEntry:
     def calculate_profit(self, sell_value, buy_value):
         return sell_value - buy_value
 
-    def save_data(self):
-
-        series = self.construct_buy_sell_frame()
-        item_words = self.buy_listings.payload.item_type.split()
-        current_working_dir = os.getcwd()
-        folder_path = os.path.join(current_working_dir, "data/profit")
-
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
-
-        file_path = os.path.join(folder_path, f"{'_'.join(item_words)}_UI_input.csv")
-        series.to_csv(file_path)
-
     def update_csv(self):
         entry = self.construct_buy_sell_frame()
         entry_df = pd.DataFrame(entry).T
@@ -276,7 +263,6 @@ def fetch_all_listings(
 
         entries.append(buy_sell_entry.construct_buy_sell_frame())
 
-        buy_sell_entry.save_data()  # Save profit frame for UI
         buy_sell_entry.update_csv()  # Save profit frame for UI
         buy_fetcher.save_data()  # Save buy data for potential history
         sell_fetcher.save_data()  # Save sell data for potential history

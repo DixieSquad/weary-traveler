@@ -157,6 +157,9 @@ class DataFrameApp:
         for child in self.tree_view.get_children():
             self.tree_view.delete(child)
 
+        # Sort dataframe on Profit
+        self.dataframe.sort_values(by="Profit", inplace=True, ascending=False)
+
         self.tree_view["columns"] = list(self.dataframe.columns)
         # Format first column
         self.tree_view.heading(

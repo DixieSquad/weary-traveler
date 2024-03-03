@@ -58,7 +58,6 @@ def fetch_data(url):
     data["Value"] = data["Value"].astype(float)
 
     save_data(data)
-    print(data)
 
 
 def save_data(data):

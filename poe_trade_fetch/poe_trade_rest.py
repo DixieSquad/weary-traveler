@@ -201,27 +201,29 @@ class BuySellEntry:
 
         buy_sell_dict = {}
 
-        buy_data = pd.DataFrame(self.buy_listings.extract_data())
-        sell_data = pd.DataFrame(self.sell_listings.extract_data())
+        buy_data = self.buy_listings.extract_data()
+        sell_data = self.sell_listings.extract_data()
         buy_sell_dict["Item Name"] = self.buy_listings.payload.item_type
 
-        if buy_data.empty:
+        if not buy_data:
             buy_sell_dict["Buy"] = None
         else:
+            buy_data = pd.DataFrame(buy_data).astype({"Price Amount": float})
             buy_data = self.convert_chaos_to_divine(buy_data)
-            buy_sell_dict["Buy"] = round(buy_data["Price Amount"].mean(), 2)
+            buy_sell_dict["Buy"] = round(buy_data["Price Amount"].mean(), 1)
 
-        if sell_data.empty:
+        if not sell_data:
             buy_sell_dict["Sell"] = None
         else:
+            sell_data = pd.DataFrame(sell_data).astype({"Price Amount": float})
             sell_data = self.convert_chaos_to_divine(sell_data)
-            buy_sell_dict["Sell"] = round(sell_data["Price Amount"].mean(), 2)
+            buy_sell_dict["Sell"] = round(sell_data["Price Amount"].mean(), 1)
 
-        if buy_data.empty or sell_data.empty:
+        if not buy_data or not sell_data:
             buy_sell_dict["Profit"] = None
         else:
             buy_sell_dict["Profit"] = round(
-                self.calculate_profit(buy_sell_dict["Sell"], buy_sell_dict["Buy"]), 2
+                self.calculate_profit(buy_sell_dict["Sell"], buy_sell_dict["Buy"]), 1
             )
 
         buy_sell_dict["Updated At"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

@@ -205,21 +205,21 @@ class BuySellEntry:
         sell_data = self.sell_listings.extract_data()
         buy_sell_dict["Item Name"] = self.buy_listings.payload.item_type
 
-        if buy_data is None:
+        if not buy_data:
             buy_sell_dict["Buy"] = None
         else:
             buy_data = pd.DataFrame(buy_data).astype({"Price Amount": float})
             buy_data = self.convert_chaos_to_divine(buy_data)
             buy_sell_dict["Buy"] = round(buy_data["Price Amount"].mean(), 1)
 
-        if sell_data is None:
+        if not sell_data:
             buy_sell_dict["Sell"] = None
         else:
             sell_data = pd.DataFrame(sell_data).astype({"Price Amount": float})
             sell_data = self.convert_chaos_to_divine(sell_data)
             buy_sell_dict["Sell"] = round(sell_data["Price Amount"].mean(), 1)
 
-        if buy_data is None or sell_data is None:
+        if not buy_data or not sell_data:
             buy_sell_dict["Profit"] = None
         else:
             buy_sell_dict["Profit"] = round(

@@ -243,7 +243,6 @@ class BuySellEntry:
 
 
 def fetch_all_listings(listing_item, buy_properties, sell_properties):
-    entries = []
     for name in listing_item:
         buy_payload = Payload(
             payload_type=buy_properties["payload_type"],
@@ -273,8 +272,6 @@ def fetch_all_listings(listing_item, buy_properties, sell_properties):
         buy_sell_entry = BuySellEntry(
             buy_listings=buy_fetcher, sell_listings=sell_fetcher
         )
-
-        entries.append(buy_sell_entry.construct_buy_sell_frame())
 
         buy_sell_entry.update_csv()  # Save profit frame for UI
         # buy_fetcher.save_data()  # Save buy data for potential history

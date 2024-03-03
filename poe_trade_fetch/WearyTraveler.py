@@ -52,7 +52,10 @@ class DataFrameApp:
         self.dropdown = ttk.Combobox(self.top_frame, textvariable=self.selected_file)
         self.dropdown.bind("<<ComboboxSelected>>", lambda event: self.load_dataframe())
         self.button_update = ttk.Button(
-            self.top_frame, text="auto-update", command=self.toggle_background_task
+            self.top_frame,
+            text="auto-update",
+            command=self.toggle_background_task,
+            takefocus=False,
         )
         self.label_status = ttk.Label(self.top_frame, text="Paused.")
 

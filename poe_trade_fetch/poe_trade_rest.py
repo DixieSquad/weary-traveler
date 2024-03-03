@@ -209,19 +209,19 @@ class BuySellEntry:
             buy_sell_dict["Buy"] = None
         else:
             buy_data = self.convert_chaos_to_divine(buy_data)
-            buy_sell_dict["Buy"] = round(buy_data["Price Amount"].mean(), 2)
+            buy_sell_dict["Buy"] = round(buy_data["Price Amount"].mean(), 1)
 
         if sell_data.empty:
             buy_sell_dict["Sell"] = None
         else:
             sell_data = self.convert_chaos_to_divine(sell_data)
-            buy_sell_dict["Sell"] = round(sell_data["Price Amount"].mean(), 2)
+            buy_sell_dict["Sell"] = round(sell_data["Price Amount"].mean(), 1)
 
         if buy_data.empty or sell_data.empty:
             buy_sell_dict["Profit"] = None
         else:
             buy_sell_dict["Profit"] = round(
-                self.calculate_profit(buy_sell_dict["Sell"], buy_sell_dict["Buy"]), 2
+                self.calculate_profit(buy_sell_dict["Sell"], buy_sell_dict["Buy"]), 1
             )
 
         buy_sell_dict["Updated At"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

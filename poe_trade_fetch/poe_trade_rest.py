@@ -208,11 +208,13 @@ class BuySellEntry:
         if buy_data.empty:
             buy_sell_dict["Buy"] = None
         else:
+            buy_data = self.convert_chaos_to_divine(buy_data)
             buy_sell_dict["Buy"] = round(buy_data["Price Amount"].mean(), 2)
 
         if sell_data.empty:
             buy_sell_dict["Sell"] = None
         else:
+            sell_data = self.convert_chaos_to_divine(sell_data)
             buy_sell_dict["Sell"] = round(sell_data["Price Amount"].mean(), 2)
 
         if buy_data.empty or sell_data.empty:
@@ -224,6 +226,12 @@ class BuySellEntry:
 
         buy_sell_dict["Updated At"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return pd.Series(buy_sell_dict)
+
+    def convert_chaos_to_divine(self, data):
+        data.loc[data["Currency"] == "chaos", "Price Amount"] = (
+            data.loc[data["Currency"] == "chaos", "Price Amount"] / 128
+        )
+        return data
 
     def calculate_profit(self, sell_value, buy_value):
         return sell_value - buy_value

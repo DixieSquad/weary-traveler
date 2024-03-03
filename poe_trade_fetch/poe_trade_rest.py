@@ -92,7 +92,7 @@ class ListingFetcher:
                 "Stash Name": stash_name,
                 "Account Name": account_name,
                 "Player Status": player_status,
-                "Price Amount": price_amount,
+                "Price Amount": float(price_amount),
                 "Currency": currency,
             }
 

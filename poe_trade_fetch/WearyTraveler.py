@@ -22,7 +22,6 @@ class BackgroundTask(threading.Thread):
         while not self._stop_event.is_set():
             print("Background Task is running...")
             poe_trade_rest.update_oldest_entry()
-            time.sleep(10)
 
 
 class DataFrameApp:
@@ -35,7 +34,6 @@ class DataFrameApp:
         self.dataframe = None
 
         # Background progress stuff
-        self.running = False
         self.background_task = None
 
         # Set style
@@ -52,7 +50,10 @@ class DataFrameApp:
         self.dropdown = ttk.Combobox(self.top_frame, textvariable=self.selected_file)
         self.dropdown.bind("<<ComboboxSelected>>", lambda event: self.load_dataframe())
         self.button_update = ttk.Button(
-            self.top_frame, text="auto-update", command=self.toggle_background_task
+            self.top_frame,
+            text="auto-update",
+            command=self.toggle_background_task,
+            takefocus=False,
         )
         self.label_status = ttk.Label(self.top_frame, text="Paused.")
 
@@ -84,10 +85,15 @@ class DataFrameApp:
         self.load_dropdown_options()
 
     def auto_refresh(self):
-        if self.running:
+        if self.background_task and self.background_task.is_alive():
             print("refreshed")
             self.load_dataframe()
             self.root.after(10000, self.auto_refresh)
+        else:
+            print("last refresh, stop refreshing")
+            self.load_dataframe()
+            self.button_update.config(text="auto-update", state=tk.NORMAL)
+            self.label_status.config(text="Paused.")
 
     def get_relative_time(self, timestring):
         updated_time = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S")
@@ -106,7 +112,7 @@ class DataFrameApp:
         return updated
 
     def toggle_background_task(self):
-        if not self.running:
+        if self.background_task is None or not self.background_task.is_alive():
             self.start_background_task()
         else:
             self.stop_background_task()
@@ -115,7 +121,6 @@ class DataFrameApp:
         if self.background_task is None or not self.background_task.is_alive():
             self.background_task = BackgroundTask()
             self.background_task.start()
-            self.running = True
             self.auto_refresh()
             self.button_update.config(text="Stop")
             self.label_status.config(text="Running updates...")
@@ -125,10 +130,7 @@ class DataFrameApp:
     def stop_background_task(self):
         if self.background_task and self.background_task.is_alive():
             self.background_task.stop()
-            self.background_task.join()  # Holds to complete application until all listings are fetched...
-            self.running = False
-            self.button_update.config(text="auto-update")
-            self.label_status.config(text="Paused.")
+            self.button_update.config(text="Stopping...", state=tk.DISABLED)
         else:
             ttk.messagebox.showwarning("Warning", "No background task is running.")
 

@@ -94,7 +94,6 @@ class ListingFetcher:
                 "Player Status": player_status,
                 "Price Amount": price_amount,
                 "Currency": currency,
-                "Updated At": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             }
 
             extracted_data.append(row)
@@ -205,12 +204,25 @@ class BuySellEntry:
         buy_data = pd.DataFrame(self.buy_listings.extract_data())
         sell_data = pd.DataFrame(self.sell_listings.extract_data())
         buy_sell_dict["Item Name"] = self.buy_listings.payload.item_type
-        buy_sell_dict["Buy"] = round(buy_data["Price Amount"].mean(), 2)
-        buy_sell_dict["Sell"] = round(sell_data["Price Amount"].mean(), 2)
-        buy_sell_dict["Profit"] = round(
-            self.calculate_profit(buy_sell_dict["Sell"], buy_sell_dict["Buy"]), 2
-        )
-        buy_sell_dict["Updated At"] = buy_data["Updated At"].max()
+
+        if buy_data.empty:
+            buy_sell_dict["Buy"] = None
+        else:
+            buy_sell_dict["Buy"] = round(buy_data["Price Amount"].mean(), 2)
+
+        if sell_data.empty:
+            buy_sell_dict["Sell"] = None
+        else:
+            buy_sell_dict["Sell"] = round(sell_data["Price Amount"].mean(), 2)
+
+        if buy_data.empty or sell_data.empty:
+            buy_sell_dict["Profit"] = None
+        else:
+            buy_sell_dict["Profit"] = round(
+                self.calculate_profit(buy_sell_dict["Sell"], buy_sell_dict["Buy"]), 2
+            )
+
+        buy_sell_dict["Updated At"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return pd.Series(buy_sell_dict)
 
     def calculate_profit(self, sell_value, buy_value):

@@ -1,11 +1,12 @@
+import os
+import traceback
+
+import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
-import pandas as pd
-from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-import traceback
-import os
+from selenium.webdriver.support.wait import WebDriverWait
 
 url = "https://poe.ninja/economy/skill-gems"
 
@@ -30,37 +31,38 @@ def fetch_data(url):
         print("Error:", e)
         traceback.print_exc()
 
-    html_content = driver.page_source
+    finally:
 
-    driver.quit()
+        html_content = driver.page_source
 
-    soup = BeautifulSoup(html_content, "html.parser")
+        driver.quit()
 
-    tr_elements = soup.find_all("tr")
-    column_names = []
-    datalist = []
+        soup = BeautifulSoup(html_content, "html.parser")
 
-    for tr in tr_elements:
-        td_elements = tr.find_all("td")
-        if len(td_elements) < 2:
-            th_elements = soup.find_all("th")
-            for element in th_elements:
-                column_names.append(element.text)
-        else:
-            items_dict = {}
-            for i in range(0, len(td_elements)):
-                if i == 0:
-                    anchor_href = td_elements[i].find("a")
-                    items_dict[column_names[i]] = anchor_href.find("span").text
-                else:
-                    items_dict[column_names[i]] = td_elements[i].text
-            datalist.append(items_dict)
-    data = pd.DataFrame(datalist)
-    print(data)
-    data["Level"] = data["Level"].astype(int)
-    data["Value"] = data["Value"].astype(float)
+        tr_elements = soup.find_all("tr")
+        column_names = []
+        datalist = []
 
-    save_data(data)
+        for tr in tr_elements:
+            td_elements = tr.find_all("td")
+            if len(td_elements) < 2:
+                th_elements = soup.find_all("th")
+                for element in th_elements:
+                    column_names.append(element.text)
+            else:
+                items_dict = {}
+                for i in range(0, len(td_elements)):
+                    if i == 0:
+                        anchor_href = td_elements[i].find("a")
+                        items_dict[column_names[i]] = anchor_href.find("span").text
+                    else:
+                        items_dict[column_names[i]] = td_elements[i].text
+                datalist.append(items_dict)
+        data = pd.DataFrame(datalist)
+        data["Level"] = data["Level"].astype(int)
+        data["Value"] = data["Value"].astype(float)
+
+        save_data(data)
 
 
 def save_data(data):

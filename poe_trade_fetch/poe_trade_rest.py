@@ -12,25 +12,31 @@ load_dotenv()
 class ListingFetcher:
     _trade_url = "https://www.pathofexile.com/api/trade/search/Affliction"
     _header = {"user-agent": str(os.getenv("EMAIL"))}
+    _last_query_time = datetime(2024, 1, 1, 00, 00, 00)
 
     def __init__(self, payload) -> None:
         self.payload = payload
 
     def fetch_listing(self):
+        seconds_since_last_query = (datetime.now() - self._last_query_time).seconds
+
+        while seconds_since_last_query < 10:
+            time.sleep(10 - seconds_since_last_query)
+            seconds_since_last_query = (datetime.now() - self._last_query_time).seconds
+
         try:
             r = requests.post(
                 self._trade_url, headers=self._header, json=self.payload.query
             )
             r.raise_for_status()
-            time.sleep(2)
             result = r.json().get("result", [])[:10]
             result_id = r.json().get("id", "")
             text_result = ",".join(result)
             fetch_url = f"https://www.pathofexile.com/api/trade/fetch/{text_result}?query={result_id}"
             listings = requests.get(fetch_url, headers=self._header)
             r.raise_for_status()
-            time.sleep(5)
             result_list = listings.json().get("result", [])
+            ListingFetcher._last_query_time = datetime.now()
             return result_list
         except requests.RequestException as e:
             print("Error: ", e)

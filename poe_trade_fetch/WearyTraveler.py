@@ -22,7 +22,6 @@ class BackgroundTask(threading.Thread):
         while not self._stop_event.is_set():
             print("Background Task is running...")
             poe_trade_rest.update_oldest_entry()
-            time.sleep(10)
 
 
 class DataFrameApp:
@@ -91,6 +90,7 @@ class DataFrameApp:
             self.load_dataframe()
             self.root.after(10000, self.auto_refresh)
         else:
+            print("last refresh, stop refreshing")
             self.load_dataframe()
             self.button_update.config(text="auto-update", state=tk.NORMAL)
             self.label_status.config(text="Paused.")

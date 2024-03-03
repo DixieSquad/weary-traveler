@@ -4,7 +4,6 @@ from datetime import datetime
 
 import pandas as pd
 import requests
-
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -200,10 +199,10 @@ class BuySellEntry:
         buy_data = pd.DataFrame(self.buy_listings.extract_data())
         sell_data = pd.DataFrame(self.sell_listings.extract_data())
         buy_sell_dict["Item Name"] = self.buy_listings.payload.item_type
-        buy_sell_dict["Buy"] = buy_data["Price Amount"].mean()
-        buy_sell_dict["Sell"] = sell_data["Price Amount"].mean()
-        buy_sell_dict["Profit"] = self.calculate_profit(
-            buy_sell_dict["Sell"], buy_sell_dict["Buy"]
+        buy_sell_dict["Buy"] = round(buy_data["Price Amount"].mean(), 2)
+        buy_sell_dict["Sell"] = round(sell_data["Price Amount"].mean(), 2)
+        buy_sell_dict["Profit"] = round(
+            self.calculate_profit(buy_sell_dict["Sell"], buy_sell_dict["Buy"]), 2
         )
         buy_sell_dict["Updated At"] = buy_data["Updated At"].max()
         return pd.Series(buy_sell_dict)
@@ -217,18 +216,23 @@ class BuySellEntry:
         entry_df.set_index("Item Name", inplace=True)
 
         current_working_dir = os.getcwd()
-        folder_path = os.path.join(current_working_dir, "data/profit")
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
-        file_path = os.path.join(folder_path, "awakened_gems.csv")
+        file_path = os.path.join(
+            current_working_dir, "data/profit", "awakened_gems.csv"
+        )
 
-        if not os.path.exists(file_path):
-            entry_df.to_csv(file_path, index=False)
-            return
+        # ensure the directory exists, no error is raised if it does.
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-        df = pd.read_csv(file_path)
-        df.set_index("Item Name", inplace=True)
-        df = entry_df.combine_first(df)
+        # check if file exists
+        if os.path.exists(file_path):
+            df = pd.read_csv(file_path, index_col="Item Name")
+            # match datatypes of entry_df and file
+            entry_df = entry_df.astype(df.dtypes)
+            # combines per value basis not rows. If new value doesn't exist, keep old value.
+            df = entry_df.combine_first(df)
+        else:
+            df = entry_df
+
         df.to_csv(file_path)
 
 
@@ -270,8 +274,6 @@ def fetch_all_listings(listing_item, buy_properties, sell_properties):
         # buy_fetcher.save_data()  # Save buy data for potential history
         # sell_fetcher.save_data()  # Save sell data for potential history
 
-    print(pd.DataFrame(entries))
-
 
 def get_oldest_entry(group_name="awakened_gems.csv"):
     current_working_dir = os.getcwd()
@@ -282,6 +284,7 @@ def get_oldest_entry(group_name="awakened_gems.csv"):
         return None
 
     df = pd.read_csv(file_path).set_index("Item Name")
+
     oldest_entry = df["Updated At"].idxmin()
 
     return oldest_entry
@@ -310,3 +313,11 @@ def get_gem_buy_sell_properties():
     }
 
     return {"buy": buy_properties, "sell": sell_properties}
+
+
+def update_oldest_entry():
+    fetch_all_listings(
+        [get_oldest_entry()],
+        get_gem_buy_sell_properties()["buy"],
+        get_gem_buy_sell_properties()["sell"],
+    )

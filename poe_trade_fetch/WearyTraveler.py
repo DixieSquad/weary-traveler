@@ -28,6 +28,7 @@ class DataFrameApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Weary Traveler")
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         root.minsize(800, 800)
 
         self.selected_file = tk.StringVar()
@@ -177,6 +178,14 @@ class DataFrameApp:
         for index, row in self.dataframe.iterrows():
             row["Updated At"] = self.get_relative_time(row["Updated At"])
             self.tree_view.insert("", "end", values=list(row))
+
+    def on_close(self):
+        if self.background_task and self.background_task.is_alive():
+            print(
+                "Gracefully shutting down auto-update, this can take up to 10 seconds..."
+            )
+            self.stop_background_task()
+        self.root.destroy()
 
 
 if __name__ == "__main__":

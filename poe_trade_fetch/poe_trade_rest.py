@@ -139,18 +139,16 @@ class Payload:
         self.min_gem_level = min_gem_level
         self.payload_type = payload_type
 
-        match sort_by:
-            case "price":
-                sort_field = "price"
-            case "gem_level":
-                sort_field = "gem_level"
-            case _:
-                sort_field = "price"
+        sort_field = "price" if sort_by not in ["price", "gem_level"] else sort_by
 
-        filters = {}
+        filters = {
+            "filters": {
+                "trade_filters": {"filters": {"price": {"option": "chaos_divine"}}}
+            }
+        }
 
         if self.min_quality is not None or self.corrupt is not None:
-            filters["filters"] = {"misc_filters": {"filters": {}}}
+            filters["filters"]["misc_filters"] = {"filters": {}}
 
             if self.min_quality is not None:
                 filters["filters"]["misc_filters"]["filters"]["quality"] = {

@@ -122,7 +122,7 @@ class Payload:
         item_type="",
         league="Affliction",
         min_quality=None,
-        sort_by="price",
+        sort_by=None,
         corrupt=None,
         max_gem_level=None,
         min_gem_level=None,
@@ -139,7 +139,22 @@ class Payload:
         self.min_gem_level = min_gem_level
         self.payload_type = payload_type
 
-        sort_field = "price" if sort_by not in ["price", "gem_level"] else sort_by
+        sort_field = (
+            "price"
+            if sort_by
+            not in [
+                "price",
+                "gem_level",
+                "quality",
+                "indexed",
+                "gem_level_progress",
+                "lvl",
+                "int",
+                "str",
+                "dex",
+            ]
+            else sort_by
+        )
 
         filters = {
             "filters": {

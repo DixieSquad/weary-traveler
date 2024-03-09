@@ -65,8 +65,9 @@ par
     end
 and
     loop
-        update data ->> update oldest entry: Request update
+        update data ->> update oldest entry: Request update from backend
         database ->> update oldest entry: Get oldest entry
+        update oldest entry -->> update oldest entry: update entry
         update oldest entry ->> database: Save updated entry
     end
 end

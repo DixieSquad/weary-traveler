@@ -12,5 +12,31 @@ be <--> db
 ```
 
 ## High-level Design
+The user interface displays a table of profit making methods, which can be refreshed automatically. The user is able to toggle the refresh functionality from the UI. With the refresh toggle enabled, the user interface engages two background processes, one to update the data in the database and another to regularly refresh the UI with the new data. The update Data process calls the backend code periodically to update the oldest entry and store the updated entry in the database.
+
+```mermaid
+flowchart
+
+subgraph UI[User Interface]
+refr_tog --> refr_ui[refresh UI]
+refr_tog --> upd_data[update Data]
+refr_ui -. loop .-> refr_ui
+upd_data -. loop .-> upd_data
+end
+
+user(user) --> refr_tog[refresh toggle]
+
+upd_old <--> db
+db[(Database)] --o refr_ui
+
+subgraph backend[backend code]
+upd_data --> upd_old[update oldest entry]
+end
+
+%% styling
+classDef subgraphstyle margin-left:4cm
+class UI subgraphstyle
+
+```
 
 ## Detailed Design

@@ -78,3 +78,27 @@ refresh toggle ->>- refresh UI:
 ```
 
 ## Detailed Design
+
+### User Interface
+The user interface is a single window containing a dropdown menu, a button, and a table overview. 
+* The dropdown menu can be used to select different groups of profit methods from the database. 
+* The button can be used to toggle the automatic update background process. 
+* The table overview lists the profit methods with the following fields:
+  * Item Name
+  * Buy price
+  * Sell price
+  * Profit
+  * Time since last update
+
+### Backend code
+
+
+### Database
+The database is represented as a collection of comma separated value files, each file storing the information of all entries within a profit method group. Each entry corrosponds with one line in the .csv file and consists of the following information:
+* (string) Item Name
+* (float) Buy price
+* (float) Sell price
+* (float) Profit
+* (datetime as text) Time of last update
+
+The time of last update is stored as text with the following format: 2024-03-20 21:22:29.

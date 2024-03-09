@@ -171,10 +171,77 @@ BuySellEntry --|> ListingFetcher : Dependency
 ListingFetcher --|> Payload : Dependency
 ```
 
+#### Sequence to update the oldest entry
+
 The calls to the poe.trade api are made by: 
 1. Constructing a trade query using the Payload class, which takes the properties of the buy and sell items in question and converts these to poe.trade queries.
-2. Create a ListingFetcher from each Payload
-3. Create a BuySellEntry from both buy and sell ListingFetchers
+2. Create a ListingFetcher from each Payload.
+3. Create a BuySellEntry from both buy and sell ListingFetchers.
+4. Calling the update_csv() method of the constructed buysellentry.
+5. Constructing a buy_sell_frame.
+6. The buy_sell_frame construction calls the extract_data method of the fetcher.
+7. The extract_data method calls the fetch_listing method to get the data from poe.trade.
+8. All item properties are extracted from the fetched data in extract_data.
+9. The extracted data is returned to the buy_sell_frame constructor.
+10. The buy_sell_frame constructor converts currencies and calculates the profit.
+11. The buy_sell_frame is returned to the update_csv method.
+12. The update_csv method saves the new buy_sell_entry to the database.
+
+```mermaid
+sequenceDiagram
+participant update_oldest_entry
+participant fetch_all_listings
+
+box rgb(80,80,80) Payload
+participant payload_init as init
+end
+
+box rgb(80,80,80) ListingFetcher
+participant fetch_init as init
+participant extract_data
+participant fetch_listing
+end
+
+box rgb(80,80,80) BuySellEntry
+participant bs_init as init
+participant update_csv
+participant construct_buy_sell_frame
+end
+
+update_oldest_entry ->> fetch_all_listings: oldest_entry,<br/> buy_properties,<br/> sell_properties
+
+loop repeat for buy and sell 
+    fetch_all_listings ->> payload_init: oldest_entry, properties
+    payload_init ->> fetch_all_listings: payload
+
+    fetch_all_listings ->> fetch_init: payload
+    fetch_init ->> fetch_all_listings: fetcher
+end
+
+fetch_all_listings ->> bs_init: fetchers
+bs_init ->> fetch_all_listings: buysellentry
+
+fetch_all_listings ->> update_csv: buysellentry.update_csv()
+update_csv ->> construct_buy_sell_frame: 
+
+construct_buy_sell_frame ->> extract_data: 
+extract_data ->> fetch_listing: 
+fetch_listing ->> extract_data: 
+loop over all returned items
+    extract_data ->> extract_data: extract_properties
+    extract_data ->> extract_data: extract_gem_experience
+end
+extract_data ->> construct_buy_sell_frame: extracted_data
+
+construct_buy_sell_frame ->> construct_buy_sell_frame: convert_chaos_to_divine
+construct_buy_sell_frame ->> construct_buy_sell_frame: calculate_profit
+
+construct_buy_sell_frame ->> update_csv: buy_sell_frame
+
+update_csv ->> update_csv: update new entry<br/> in database
+
+```
+
 
 ### Database
 

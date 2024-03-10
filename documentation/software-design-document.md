@@ -41,7 +41,7 @@ classDef subgraphstyle margin-left:4cm
 class UI subgraphstyle
 
 ```
-### High-level sequence diagram
+### High-level sequence diagram of the UI background process
 
 ``` mermaid
 sequenceDiagram
@@ -76,6 +76,26 @@ end
 user ->> refresh toggle: Toggle Off
 refresh toggle ->> update data: Stop processes
 refresh toggle ->>- refresh UI: 
+```
+
+### Current data flow
+```mermaid
+flowchart LR
+db["`Database 
+_BuySellEntries_`"] --> |oldest| get_old[extract buy/sell<br/>properties]
+
+get_old --> |buy| convert_buy[convert to Payload]
+get_old --> |sell| convert_sell[convert to Payload]
+convert_buy --> construct_buy[construct Fetcher]
+convert_sell --> construct_sell[construct Fetcher]
+construct_buy --> fetch_buy[fetch]
+construct_sell --> fetch_sell[fetch]
+fetch_buy --> |buy| combine[combine into BuySellEntry]
+fetch_sell --> |sell| combine
+
+combine --> |update| db2["`Database 
+_BuySellEntries_`"]
+
 ```
 
 ## Detailed Design

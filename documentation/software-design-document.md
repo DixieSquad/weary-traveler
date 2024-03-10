@@ -81,8 +81,9 @@ refresh toggle ->>- refresh UI:
 ### Current data flow
 ```mermaid
 flowchart LR
-db["`Database 
-_BuySellEntries_`"] --> |oldest| get_old[extract buy/sell<br/>properties]
+db[("`Database 
+_BuySellEntries_ 
+(UI ready)`")] --> |oldest| get_old[extract buy/sell<br/>properties]
 
 get_old --> |buy| convert_buy[convert to Payload]
 get_old --> |sell| convert_sell[convert to Payload]
@@ -93,10 +94,76 @@ construct_sell --> fetch_sell[fetch]
 fetch_buy --> |buy| combine[combine into BuySellEntry]
 fetch_sell --> |sell| combine
 
-combine --> |update| db2["`Database 
-_BuySellEntries_`"]
+combine --> |update| db2[("`Database 
+_BuySellEntries_
+(UI ready)`")]
 
 ```
+
+### Data flow in v0.2.0
+```mermaid
+flowchart LR
+db[("`Database 
+_entries_
+(buy and sell 
+on different lines)`")] --> |oldest| get_old[extract <br/>properties]
+
+get_old --> convert["build query (Payload)"]
+convert --> construct[construct Fetcher]
+construct --> fetch
+
+fetch --> |update| db2[("`Database 
+_entries_
+(buy and sell 
+on different lines)`")]
+```
+The above design of the database requires a converter to create usable User Interface input:
+
+```mermaid
+flowchart TB
+db[("`Database 
+_entries_
+(buy and sell 
+on different lines)`")] --> group[group buy and sell queries by item name]
+
+subgraph converter
+    group --> create[create BuySellEntry for each buy/sell combination]
+end
+
+create --> db2[("`Database 
+_BuySellEntries_
+(UI ready)`")]
+
+%% styling
+classDef subgraphstyle margin-right:3cm
+class converter subgraphstyle
+```
+
+### The two databases will have different structures:
+
+'entries' database example for the 'Gems' profit method group:
+
+|Item Name|Buy/Sell|Level|Quality|Corrupt|Value|# Listed|
+|--|--|--|--|--|--|--|
+|Awakened Spell Echo|Buy|1|0|False|12.3|23|
+|Awakened Spell Echo|Sell|5|20|False|23.4|15|
+|...|...|...|...|...|...|...|
+
+'entries' database example for the 'Flasks' profit method group:
+
+|Item Name|Buy/Sell|Prefix|Suffix|Quality|Enchant|Value|# Listed|
+|--|--|--|--|--|--|--|--|
+|Ruby Flask|Buy|None|None|0|None|0.1|5|
+|Ruby Flask|Sell|Inc. Effect|Life Regen|0|None|0.8|5|
+|...|...|...|...|...|...|...|...|
+
+'BuySellEntries' database example for the 'Gems' profit method group:
+
+|Item Name|Buy type|Buy price|Sell type|Sell price|Profit|Last updated|
+|--|--|--|--|--|--|--|
+|Awakened Spell Echo|lvl:0, Q:0%, Corrupt:No|12.3|lvl:5, Q:20%, Corrupt:No|23.4|11.1|2024-03-03 22:05:46|
+|...|...|...|...|...|...|...|
+
 
 ## Detailed Design
 

@@ -334,7 +334,7 @@ update_csv ->> update_csv: update new entry<br/> in database
 ```mermaid
 sequenceDiagram
 participant update_oldest_entry
-participant fetch_all_listings
+participant update_all_listings
 
 box rgb(80,80,80) Payload
 participant payload_init as init
@@ -352,16 +352,16 @@ participant construct_buy_sell_frame
 participant update_csv
 end
 
-update_oldest_entry ->> fetch_all_listings: oldest_entry,<br/> buy_properties,<br/> sell_properties
+update_oldest_entry ->> update_all_listings: oldest_entry,<br/> buy_properties,<br/> sell_properties
 
 loop repeat for buy and sell 
-    fetch_all_listings ->> payload_init: oldest_entry, properties
-    payload_init ->> fetch_all_listings: payload
+    update_all_listings ->> payload_init: oldest_entry, properties
+    payload_init ->> update_all_listings: payload
 
-    fetch_all_listings ->> fetch_init: payload
-    fetch_init ->> fetch_all_listings: fetcher
+    update_all_listings ->> fetch_init: payload
+    fetch_init ->> update_all_listings: fetcher
 
-    fetch_all_listings ->> fetch_listing: fetch the listing
+    update_all_listings ->> fetch_listing: fetch the listing
     fetch_listing ->> extract_data: extract the data
 
     loop over all returned items
@@ -369,17 +369,17 @@ loop repeat for buy and sell
         extract_data ->> extract_data: extract_gem_experience
     end
     extract_data ->> fetch_listing: listing data
-    fetch_listing ->> fetch_all_listings: 
+    fetch_listing ->> update_all_listings: 
 end
 
-fetch_all_listings ->> bs_init: listing data<br/>(buy and sell)
+update_all_listings ->> bs_init: listing data<br/>(buy and sell)
 bs_init ->> construct_buy_sell_frame: 
 construct_buy_sell_frame ->> construct_buy_sell_frame: convert_chaos_to_divine
 construct_buy_sell_frame ->> construct_buy_sell_frame: calculate_profit
 construct_buy_sell_frame ->> bs_init: buysellentry
-bs_init ->> fetch_all_listings: 
+bs_init ->> update_all_listings: 
 
-fetch_all_listings ->> update_csv: buysellentry.update_csv()
+update_all_listings ->> update_csv: buysellentry.update_csv()
 
 update_csv ->> update_csv: update new entry<br/> in database
 

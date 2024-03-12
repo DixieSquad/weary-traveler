@@ -143,19 +143,19 @@ class converter subgraphstyle
 
 'entries' database example for the 'Gems' profit method group:
 
-|Item Name|Buy/Sell|Level|Quality|Corrupt|Value|# Listed|
-|--|--|--|--|--|--|--|
-|Awakened Spell Echo|Buy|1|0|False|12.3|23|
-|Awakened Spell Echo|Sell|5|20|False|23.4|15|
-|...|...|...|...|...|...|...|
+|Item Name|Buy/Sell|Level|XP|Quality|Corrupt|Value|# Listed|
+|--|--|--|--|--|--|--|--|
+|Awakened Spell Echo|Buy|1|0|0|False|12.3|23|
+|Awakened Spell Echo|Sell|5|40m|20|False|23.4|15|
+|...|...|...|...|...|...|...|...|
 
 'entries' database example for the 'Flasks' profit method group:
 
-|Item Name|Buy/Sell|Prefix|Suffix|Quality|Enchant|Value|# Listed|
-|--|--|--|--|--|--|--|--|
-|Ruby Flask|Buy|None|None|0|None|0.1|5|
-|Ruby Flask|Sell|Inc. Effect|Life Regen|0|None|0.8|5|
-|...|...|...|...|...|...|...|...|
+|Item Name|Buy/Sell|ilvl|Prefix|Suffix|Quality|Enchant|Value|# Listed|
+|--|--|--|--|--|--|--|--|--|
+|Ruby Flask|Buy|84|None|None|0|None|0.1|5|
+|Ruby Flask|Sell|84|Inc. Effect|Life Regen|0|None|0.8|5|
+|...|...|...|...|...|...|...|...|...|
 
 'BuySellEntries' database example for the 'Gems' profit method group:
 
@@ -395,3 +395,13 @@ The database is represented as a collection of comma separated value files, each
 * (datetime as text) Time of last update
 
 The time of last update is stored as text with the following format: 2024-03-20 21:22:29.
+
+## Notes/Open Issues
+
+* Remove all unnecessary fields from extract_data/fetch_listing, only keep Price and Currency. These are the only fields that need updates, the query contains all item parameter from input.
+  * Be aware that saving intermediate data might still be interesting to improve algorithms 
+* Remove fetch_all_listings(), add an update() method to BuySellEntry, or in the future: Entry.
+* In the future, with the double database setup, the entries (Entry class) should have the functionality to update themselves.
+* Change Payload to QueryBuilder, with subclasses for GemQueryBuilder, FlaskQueryBuilder, etc.
+* Create sequence diagram for v0.2.0
+* Include gem XP in GemQueryBuilder

@@ -17,7 +17,7 @@ class ListingFetcher:
     def __init__(self, payload) -> None:
         self.payload = payload
 
-    def fetch_listing(self):
+    def fetch_listing(self) -> list[dict]:
         seconds_since_last_query = (datetime.now() - self._last_query_time).seconds
 
         while seconds_since_last_query < 10:
@@ -35,9 +35,12 @@ class ListingFetcher:
             fetch_url = f"https://www.pathofexile.com/api/trade/fetch/{text_result}?query={result_id}"
             listings = requests.get(fetch_url, headers=self._header)
             r.raise_for_status()
-            result_list = listings.json().get("result", [])
+            listing_results = listings.json().get("result", [])
             ListingFetcher._last_query_time = datetime.now()
-            return result_list
+
+            extracted_data = self.extract_data(listing_results)
+
+            return extracted_data
         except requests.RequestException as e:
             print("Error: ", e)
             return []
@@ -58,10 +61,10 @@ class ListingFetcher:
                 return prop.get("values", [])[0][0]
         return None
 
-    def extract_data(self):
+    def extract_data(self, listing_results: list[dict]) -> list[dict]:
         extracted_data = []
 
-        for item in self.fetch_listing():
+        for item in listing_results:
             listing = item.get("listing", {})
             item_info = item.get("item", {})
 
@@ -214,8 +217,8 @@ class BuySellEntry:
 
         buy_sell_dict = {}
 
-        buy_data = pd.DataFrame(self.buy_listings.extract_data())
-        sell_data = pd.DataFrame(self.sell_listings.extract_data())
+        buy_data = pd.DataFrame(self.buy_listings.fetch_listing())
+        sell_data = pd.DataFrame(self.sell_listings.fetch_listing())
         buy_sell_dict["Item Name"] = self.buy_listings.payload.item_type
 
         if buy_data.empty:

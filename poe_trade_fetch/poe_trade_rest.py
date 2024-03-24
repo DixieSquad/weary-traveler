@@ -17,7 +17,7 @@ class ListingFetcher:
     def __init__(self, payload) -> None:
         self.payload = payload
 
-    def fetch_listing(self) -> list[dict]:
+    def fetch_listing(self) -> pd.DataFrame:
         seconds_since_last_query = (datetime.now() - self._last_query_time).seconds
 
         while seconds_since_last_query < 10:
@@ -40,7 +40,7 @@ class ListingFetcher:
 
             extracted_data = self.extract_data(listing_results)
 
-            return extracted_data
+            return pd.DataFrame(extracted_data)
         except requests.RequestException as e:
             print("Error: ", e)
             return []
@@ -208,42 +208,34 @@ class Payload:
 class BuySellEntry:
 
     def __init__(
-        self, buy_listings: ListingFetcher, sell_listings: ListingFetcher
+        self, name: str, buy_data: pd.DataFrame, sell_data: pd.DataFrame
     ) -> None:
-        self.buy_listings = buy_listings
-        self.sell_listings = sell_listings
-
-    def construct_buy_sell_frame(self):
 
         buy_sell_dict = {}
-
-        buy_data = pd.DataFrame(self.buy_listings.fetch_listing())
-        sell_data = pd.DataFrame(self.sell_listings.fetch_listing())
-        buy_sell_dict["Item Name"] = self.buy_listings.payload.item_type
+        self.item_name = name
 
         if buy_data.empty:
-            buy_sell_dict["Buy"] = None
+            self.buy_value = None
         else:
             buy_data = buy_data.astype({"Price Amount": float})
             buy_data = self.convert_chaos_to_divine(buy_data)
-            buy_sell_dict["Buy"] = round(buy_data["Price Amount"].mean(), 1)
+            self.buy_value = round(buy_data["Price Amount"].mean(), 1)
 
         if sell_data.empty:
-            buy_sell_dict["Sell"] = None
+            self.sell_value = None
         else:
             sell_data = sell_data.astype({"Price Amount": float})
             sell_data = self.convert_chaos_to_divine(sell_data)
-            buy_sell_dict["Sell"] = round(sell_data["Price Amount"].mean(), 1)
+            self.sell_value = round(sell_data["Price Amount"].mean(), 1)
 
         if buy_data.empty or sell_data.empty:
-            buy_sell_dict["Profit"] = None
+            self.profit = None
         else:
-            buy_sell_dict["Profit"] = round(
-                self.calculate_profit(buy_sell_dict["Sell"], buy_sell_dict["Buy"]), 1
+            self.profit = round(
+                self.calculate_profit(self.sell_value, self.buy_value), 1
             )
 
-        buy_sell_dict["Updated At"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        return pd.Series(buy_sell_dict)
+        self.update_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def convert_chaos_to_divine(self, data):
         data.loc[data["Currency"] == "chaos", "Price Amount"] = (
@@ -255,9 +247,7 @@ class BuySellEntry:
         return sell_value - buy_value
 
     def update_csv(self):
-        entry = self.construct_buy_sell_frame()
-        entry_df = pd.DataFrame(entry).T
-        entry_df.set_index("Item Name", inplace=True)
+        entry = self.to_dataframe()
 
         current_working_dir = os.getcwd()
         file_path = os.path.join(
@@ -271,13 +261,26 @@ class BuySellEntry:
         if os.path.exists(file_path):
             df = pd.read_csv(file_path, index_col="Item Name")
             # match datatypes of entry_df and file
-            entry_df = entry_df.astype(df.dtypes)
+            entry = entry.astype(df.dtypes)
             # combines per value basis not rows. If new value doesn't exist, keep old value.
-            df = entry_df.combine_first(df)
+            df = entry.combine_first(df)
         else:
-            df = entry_df
+            df = entry
 
         df.to_csv(file_path)
+
+    def to_dataframe(self) -> pd.DataFrame:
+        d = {
+            "Item Name": self.item_name,
+            "Buy": self.buy_value,
+            "Sell": self.sell_value,
+            "Profit": self.profit,
+            "Updated At": self.update_at,
+        }
+        df = pd.DataFrame(d, index=[0])
+        df.set_index("Item Name", inplace=True)
+
+        return df
 
 
 def fetch_all_listings(listing_item, buy_properties, sell_properties):
@@ -307,10 +310,10 @@ def fetch_all_listings(listing_item, buy_properties, sell_properties):
         buy_fetcher = ListingFetcher(buy_payload)
         sell_fetcher = ListingFetcher(sell_payload)
 
-        buy_sell_entry = BuySellEntry(
-            buy_listings=buy_fetcher, sell_listings=sell_fetcher
-        )
+        buy_data = buy_fetcher.fetch_listing()
+        sell_data = sell_fetcher.fetch_listing()
 
+        buy_sell_entry = BuySellEntry(name, buy_data, sell_data)
         buy_sell_entry.update_csv()  # Save profit frame for UI
         # buy_fetcher.save_data()  # Save buy data for potential history
         # sell_fetcher.save_data()  # Save sell data for potential history

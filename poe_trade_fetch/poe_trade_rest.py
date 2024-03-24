@@ -104,7 +104,7 @@ class ListingFetcher:
         return extracted_data
 
     def save_data(self):
-        df = pd.DataFrame(self.extract_data())
+        df = self.fetch_listing()
         item_words = self.payload.item_type.split()
         current_working_dir = os.getcwd()
         folder_path = os.path.join(current_working_dir, "data/trade")

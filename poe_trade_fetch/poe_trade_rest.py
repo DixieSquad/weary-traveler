@@ -43,7 +43,7 @@ class ListingFetcher:
             return pd.DataFrame(extracted_data)
         except requests.RequestException as e:
             print("Error: ", e)
-            return []
+            return pd.DataFrame()
 
     def extract_properties(self, item_properties):
         item_level, item_quality = None, None

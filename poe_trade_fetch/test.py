@@ -9,4 +9,4 @@ sell["min_quality"] = 100
 
 gem = ["Awakened Added Cold Damage Support"]
 
-poe.fetch_all_listings(gem, buy, sell)
+poe.update_all_listings(gem, buy, sell)

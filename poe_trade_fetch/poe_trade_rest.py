@@ -283,7 +283,7 @@ class BuySellEntry:
         return df
 
 
-def fetch_all_listings(listing_item, buy_properties, sell_properties):
+def update_all_listings(listing_item, buy_properties, sell_properties):
     for name in listing_item:
         buy_payload = Payload(
             payload_type=buy_properties["payload_type"],
@@ -360,7 +360,7 @@ def get_gem_buy_sell_properties():
 
 
 def update_oldest_entry():
-    fetch_all_listings(
+    update_all_listings(
         [get_oldest_entry()],
         get_gem_buy_sell_properties()["buy"],
         get_gem_buy_sell_properties()["sell"],

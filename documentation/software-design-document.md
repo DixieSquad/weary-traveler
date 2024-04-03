@@ -204,11 +204,14 @@ class poe_ninja_scraper{
 }
 ```
 
+
 #### poe_trade_rest.py
 
 The poe.trade api handler interacts with the poe.trade api to update the current market value for items in Path of Exile. The Weary Traveler uses this api handler to update the buy and sell prices for each profit method entry periodically.
 
-#### Class diagram for poe_trade_rest.py
+## v0.1.x
+
+### Class diagram for poe_trade_rest.py
 
 ```mermaid
 classDiagram
@@ -258,7 +261,7 @@ BuySellEntry --|> ListingFetcher : Dependency
 ListingFetcher --|> Payload : Dependency
 ```
 
-#### Sequence to update the oldest entry (v0.1.0)
+### Sequence to update the oldest entry
 
 The calls to the poe.trade api are made by: 
 1. Constructing a trade query using the Payload class, which takes the properties of the buy and sell items in question and converts these to poe.trade queries.
@@ -329,7 +332,7 @@ update_csv ->> update_csv: update new entry<br/> in database
 
 ```
 
-#### Sequence to update the oldest entry (v0.1.1)
+### Sequence to update the oldest entry (v0.1.1)
 
 ```mermaid
 sequenceDiagram
@@ -395,6 +398,117 @@ The database is represented as a collection of comma separated value files, each
 * (datetime as text) Time of last update
 
 The time of last update is stored as text with the following format: 2024-03-20 21:22:29.
+
+## v0.2.0
+
+### Class diagram for poe_trade_rest
+
+```mermaid
+classDiagram
+class poe_trade_rest{
+    + update_oldest_entry(group: str) None
+}
+```
+### Class diagram for the Database class
+
+```mermaid
+classDiagram
+class Database{
+    <<Singleton>>
+    - instance: Database$
+    - Database()
+    + getInstance() Database$
+    - get_oldest_entry(group: str) Entry
+    + initialize_from_ninja(group: str) None
+    + construct_BuySellCSV(group: str) None
+    + construct_BuySellEntry(buy_entry: Entry, sell_entry: Entry) BuySellEntry
+    + update_entry(group: str, entry: Entry) None
+}
+```
+
+### Class diagram for dataclasses
+
+```mermaid
+classDiagram
+class BuySellEntry{
+    <<dataclass>>
+    + id: int
+    + item_name: str
+    + buy_id: int
+    + buy_mods: str
+    + buy_url: str
+    + buy_price: float
+    + sell_id: int
+    + sell_mods: str
+    + sell_url: str
+    + sell_price: float
+    + profit: float
+    + updated_at: datetime
+}
+
+class Entry{
+    <<dataclass>>
+    + id: int
+    + item_name: str
+    + modifiers: dict[str, Any]
+    + url: str
+    + value: float
+    + nr_listed: int
+    + updated_at: datetime
+    + get_value_from_trade() None
+    + mods_to_str() str
+}
+
+class Listing{
+    <<dataclass>>
+    + price: float
+    + currency: str
+}
+```
+
+### Class diagram for functional classes
+
+```mermaid
+classDiagram
+class Fetcher{
+    - trade_url: str$
+    - header: dict$
+    - last_query_time: datetime$
+    + listings: list[Listing]
+    + url: str
+    + nr_listed: int
+    + Fetcher(item_name: str, modifiers: dict[str, Any])
+    - fetch() None
+    - extract_listing(listing: json) Listing
+    - build_query(item_name: str, modifiers: dict[str, Any]) json
+}
+```
+
+## Future (v0.3.0+)
+
+### Additional "Item" functionality in the Listing class
+
+```mermaid
+classDiagram
+class Listing{
+    <<dataclass>>
+    + price: float
+    + currency: str
+    + listed_at: datetime
+    + Item: Item
+}
+
+class Item{
+    <<dataclass>>
+    + item_name: str
+    + ilvl: int
+    + identified: bool
+    + properties: dict[str, str]
+    + requirements: dict[str, str]
+    + explicit_mods: list[str]
+    + sockets: list[str]
+}
+```
 
 ## Notes/Open Issues
 

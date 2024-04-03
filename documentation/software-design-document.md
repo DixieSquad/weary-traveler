@@ -143,23 +143,23 @@ class converter subgraphstyle
 
 'entries' database example for the 'Gems' profit method group:
 
-|Item Name|Buy/Sell|Level|XP|Quality|Corrupt|Value|# Listed|
-|--|--|--|--|--|--|--|--|
-|Awakened Spell Echo|Buy|1|0|0|False|12.3|23|
-|Awakened Spell Echo|Sell|5|40m|20|False|23.4|15|
-|...|...|...|...|...|...|...|...|
+|Item Name          |Modifiers                                            |Value|# Listed|Last updated       |
+|-------------------|-----------------------------------------------------|----:|-------:|-------------------|
+|Awakened Spell Echo|{Level: 0,<br>XP: 20m,<br>Quality: 0,<br>Corrupt: No}|6.4  |23      |2024-03-03 22:05:46|
+|Awakened Spell Echo|{Level: 0,<br>XP: 20m,<br>Quality: 0,<br>Corrupt: No}|12.3 |12      |2024-03-03 22:05:46|
+|...                |...                                                  |...  |...     |...                |
 
 'entries' database example for the 'Flasks' profit method group:
 
-|Item Name|Buy/Sell|ilvl|Prefix|Suffix|Quality|Enchant|Value|# Listed|
-|--|--|--|--|--|--|--|--|--|
-|Ruby Flask|Buy|84|None|None|0|None|0.1|5|
-|Ruby Flask|Sell|84|Inc. Effect|Life Regen|0|None|0.8|5|
-|...|...|...|...|...|...|...|...|...|
+|Item Name          |Modifiers                                        |Value|# Listed|Last updated       |
+|-------------------|-------------------------------------------------|----:|-------:|-------------------|
+|Ruby Flask         |{ilvl:84,<br>Prefix: None,<br>Suffix: None,<br>Quality: 0,<br>Enchant: None}|0.04 |100      |2024-03-03 22:05:46|
+|Ruby Flask         |{ilvl:84,<br>Prefix: 25% Increase Effect,<br>Suffix: 5% life regen,<br>Quality: 0,<br>Enchant: None}|0.8 |9      |2024-03-03 22:05:46|
+|...                |...                                              |...  |...     |... |
 
 'BuySellEntries' database example for the 'Gems' profit method group:
 
-|Item Name|Buy type|Buy price|Sell type|Sell price|Profit|Last updated|
+|Item Name|Buy mods|Buy price|Sell mods|Sell price|Profit|Last updated|
 |--|--|--|--|--|--|--|
 |Awakened Spell Echo|lvl:0, Q:0%, Corrupt:No|12.3|lvl:5, Q:20%, Corrupt:No|23.4|11.1|2024-03-03 22:05:46|
 |...|...|...|...|...|...|...|

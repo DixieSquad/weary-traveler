@@ -401,6 +401,38 @@ The time of last update is stored as text with the following format: 2024-03-20 
 
 ## v0.2.0
 
+### Class diagram overview (only critical dependencies shown)
+
+```mermaid
+classDiagram
+
+class poe_trade_rest{
+    + update_oldest_entry(group: str) None
+}
+
+class Database{
+    + update_entry(group: str, entry: Entry) None
+    + construct_BuySellEntry(buy_entry: Entry, sell_entry: Entry) BuySellEntry
+    + initialize_from_ninja(group: str) None
+}
+
+class Entry{
+    + get_value_from_trade() None
+}
+
+class Fetcher{
+    - extract_listing(response_listing: json) Listing
+}
+
+poe_trade_rest --|> Database: Dependency
+Database --|> Entry: Dependency
+Database --|> BuySellEntry: Dependency
+Database --|> poe_ninja_scraper: Dependency
+Entry --|> Fetcher: Dependency
+Fetcher --|> Listing: Dependency
+
+```
+
 ### Class diagram for poe_trade_rest
 
 ```mermaid

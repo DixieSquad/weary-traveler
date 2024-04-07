@@ -411,12 +411,12 @@ class poe_trade_rest{
 }
 
 class Database{
-    + update_entry(group: str, entry: Entry) None
-    + construct_BuySellEntry(buy_entry: Entry, sell_entry: Entry) BuySellEntry
+    + update(group: str, entry: ItemEntry) None
+    + construct_ProfitMethod(buy_item: ItemEntry, sell_item: ItemEntry) ProfitStrat
     + initialize_from_ninja(group: str) None
 }
 
-class Entry{
+class ItemEntry{
     + get_value_from_trade() None
 }
 
@@ -425,10 +425,10 @@ class Fetcher{
 }
 
 poe_trade_rest --|> Database: Dependency
-Database --|> Entry: Dependency
-Database --|> BuySellEntry: Dependency
+Database --|> ItemEntry: Dependency
+Database --|> ProfitStrat: Dependency
 Database --|> poe_ninja_scraper: Dependency
-Entry --|> Fetcher: Dependency
+ItemEntry --|> Fetcher: Dependency
 Fetcher --|> Listing: Dependency
 
 ```
@@ -450,11 +450,11 @@ class Database{
     - instance: Database$
     - Database()
     + getInstance() Database$
-    - get_oldest_entry(group: str) Entry
+    - get_oldest_item_entry(group: str) ItemEntry
     + initialize_from_ninja(group: str) None
-    + construct_BuySellCSV(group: str) None
-    + construct_BuySellEntry(buy_entry: Entry, sell_entry: Entry) BuySellEntry
-    + update_entry(group: str, entry: Entry) None
+    + construct_ProfitStratCSV(group: str) None
+    + construct_ProfitStrat(buy_item: ItemEntry, sell_item: ItemEntry) ProfitStrat
+    + update(group: str, entry: ItemEntry) None
 }
 ```
 
@@ -462,23 +462,17 @@ class Database{
 
 ```mermaid
 classDiagram
-class BuySellEntry{
+class ProfitStrat{
     <<dataclass>>
     + id: int
     + item_name: str
-    + buy_id: int
-    + buy_mods: str
-    + buy_url: str
-    + buy_price: float
-    + sell_id: int
-    + sell_mods: str
-    + sell_url: str
-    + sell_price: float
+    + buy_item: ItemEntry
+    + sell_item: ItemEntry
     + profit: float
-    + updated_at: datetime
+    + to_str() str
 }
 
-class Entry{
+class ItemEntry{
     <<dataclass>>
     + id: int
     + item_name: str
@@ -495,6 +489,7 @@ class Listing{
     <<dataclass>>
     + price: float
     + currency: str
+    + chaos_to_divine() None
 }
 ```
 
@@ -510,7 +505,7 @@ class Fetcher{
     + url: str
     + nr_listed: int
     + Fetcher(item_name: str, modifiers: dict[str, Any])
-    - fetch() None
+    + fetch() list[Listing]
     - extract_listing(listing: json) Listing
     - build_query(item_name: str, modifiers: dict[str, Any]) json
 }
@@ -546,8 +541,4 @@ class Item{
 
 * Remove all unnecessary fields from extract_data/fetch_listing, only keep Price and Currency. These are the only fields that need updates, the query contains all item parameter from input.
   * Be aware that saving intermediate data might still be interesting to improve algorithms 
-* Remove fetch_all_listings(), add an update() method to BuySellEntry, or in the future: Entry.
-* In the future, with the double database setup, the entries (Entry class) should have the functionality to update themselves.
-* Change Payload to QueryBuilder, with subclasses for GemQueryBuilder, FlaskQueryBuilder, etc.
-* Create sequence diagram for v0.2.0
 * Include gem XP in GemQueryBuilder

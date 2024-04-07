@@ -4,6 +4,7 @@ import time
 import tkinter as tk
 from datetime import datetime
 from tkinter import ttk
+from tkinter import messagebox
 
 import pandas as pd
 import poe_trade_rest
@@ -126,14 +127,14 @@ class DataFrameApp:
             self.button_update.config(text="Stop")
             self.label_status.config(text="Running updates...")
         else:
-            ttk.messagebox.showwarning("Warning", "Background task is already running.")
+            messagebox.showwarning("Warning", "Background task is already running.")
 
     def stop_background_task(self):
         if self.background_task and self.background_task.is_alive():
             self.background_task.stop()
             self.button_update.config(text="Stopping...", state=tk.DISABLED)
         else:
-            ttk.messagebox.showwarning("Warning", "No background task is running.")
+            messagebox.showwarning("Warning", "No background task is running.")
 
     def load_dropdown_options(self):
         # Load available CSV files in the 'Output' folder
@@ -151,7 +152,7 @@ class DataFrameApp:
                 self.dataframe = pd.read_csv(file_path)
                 self.display_dataframe_in_treeview()
             except Exception as e:
-                ttk.messagebox.showerror("Error", f"Failed to load DataFrame: {e}")
+                messagebox.showerror("Error", f"Failed to load DataFrame: {e}")
 
     def display_dataframe_in_treeview(self):
         # Clear existing tree view

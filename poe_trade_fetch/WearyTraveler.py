@@ -33,7 +33,7 @@ class DataFrameApp:
         root.minsize(800, 800)
 
         self.selected_file = tk.StringVar()
-        self.dataframe = None
+        self.dataframe = pd.DataFrame()
 
         # Background progress stuff
         self.background_task = None

@@ -41,7 +41,7 @@ classDef subgraphstyle margin-left:4cm
 class UI subgraphstyle
 
 ```
-### High-level sequence diagram
+### High-level sequence diagram of the UI background process
 
 ``` mermaid
 sequenceDiagram
@@ -77,6 +77,93 @@ user ->> refresh toggle: Toggle Off
 refresh toggle ->> update data: Stop processes
 refresh toggle ->>- refresh UI: 
 ```
+
+### Current data flow
+```mermaid
+flowchart LR
+db[("`Database 
+_BuySellEntries_ 
+(UI ready)`")] --> |oldest| get_old[extract buy/sell<br/>properties]
+
+get_old --> |buy| convert_buy[convert to Payload]
+get_old --> |sell| convert_sell[convert to Payload]
+convert_buy --> construct_buy[construct Fetcher]
+convert_sell --> construct_sell[construct Fetcher]
+construct_buy --> fetch_buy[fetch]
+construct_sell --> fetch_sell[fetch]
+fetch_buy --> |buy| combine[combine into BuySellEntry]
+fetch_sell --> |sell| combine
+
+combine --> |update| db2[("`Database 
+_BuySellEntries_
+(UI ready)`")]
+
+```
+
+### Data flow in v0.2.0
+```mermaid
+flowchart LR
+db[("`Database 
+_entries_
+(buy and sell 
+on different lines)`")] --> |oldest| get_old[extract <br/>properties]
+
+get_old --> convert["build query (Payload)"]
+convert --> construct[construct Fetcher]
+construct --> fetch
+
+fetch --> |update| db2[("`Database 
+_entries_
+(buy and sell 
+on different lines)`")]
+```
+The above design of the database requires a converter to create usable User Interface input:
+
+```mermaid
+flowchart TB
+db[("`Database 
+_entries_
+(buy and sell 
+on different lines)`")] --> group[group buy and sell queries by item name]
+
+subgraph converter
+    group --> create[create BuySellEntry for each buy/sell combination]
+end
+
+create --> db2[("`Database 
+_BuySellEntries_
+(UI ready)`")]
+
+%% styling
+classDef subgraphstyle margin-right:3cm
+class converter subgraphstyle
+```
+
+### The two databases will have different structures:
+
+'entries' database example for the 'Gems' profit method group:
+
+|Item Name          |Modifiers                                            |Value|# Listed|Last updated       |
+|-------------------|-----------------------------------------------------|----:|-------:|-------------------|
+|Awakened Spell Echo|{Level: 0,<br>XP: 20m,<br>Quality: 0,<br>Corrupt: No}|6.4  |23      |2024-03-03 22:05:46|
+|Awakened Spell Echo|{Level: 0,<br>XP: 20m,<br>Quality: 0,<br>Corrupt: No}|12.3 |12      |2024-03-03 22:05:46|
+|...                |...                                                  |...  |...     |...                |
+
+'entries' database example for the 'Flasks' profit method group:
+
+|Item Name          |Modifiers                                        |Value|# Listed|Last updated       |
+|-------------------|-------------------------------------------------|----:|-------:|-------------------|
+|Ruby Flask         |{ilvl:84,<br>Prefix: None,<br>Suffix: None,<br>Quality: 0,<br>Enchant: None}|0.04 |100      |2024-03-03 22:05:46|
+|Ruby Flask         |{ilvl:84,<br>Prefix: 25% Increase Effect,<br>Suffix: 5% life regen,<br>Quality: 0,<br>Enchant: None}|0.8 |9      |2024-03-03 22:05:46|
+|...                |...                                              |...  |...     |... |
+
+'BuySellEntries' database example for the 'Gems' profit method group:
+
+|Item Name|Buy mods|Buy price|Sell mods|Sell price|Profit|Last updated|
+|--|--|--|--|--|--|--|
+|Awakened Spell Echo|lvl:0, Q:0%, Corrupt:No|12.3|lvl:5, Q:20%, Corrupt:No|23.4|11.1|2024-03-03 22:05:46|
+|...|...|...|...|...|...|...|
+
 
 ## Detailed Design
 
@@ -117,11 +204,14 @@ class poe_ninja_scraper{
 }
 ```
 
+
 #### poe_trade_rest.py
 
 The poe.trade api handler interacts with the poe.trade api to update the current market value for items in Path of Exile. The Weary Traveler uses this api handler to update the buy and sell prices for each profit method entry periodically.
 
-#### Class diagram for poe_trade_rest.py
+## v0.1.x
+
+### Class diagram for poe_trade_rest.py
 
 ```mermaid
 classDiagram
@@ -171,7 +261,7 @@ BuySellEntry --|> ListingFetcher : Dependency
 ListingFetcher --|> Payload : Dependency
 ```
 
-#### Sequence to update the oldest entry
+### Sequence to update the oldest entry
 
 The calls to the poe.trade api are made by: 
 1. Constructing a trade query using the Payload class, which takes the properties of the buy and sell items in question and converts these to poe.trade queries.
@@ -198,14 +288,14 @@ end
 
 box rgb(80,80,80) ListingFetcher
 participant fetch_init as init
-participant extract_data
 participant fetch_listing
+participant extract_data
 end
 
 box rgb(80,80,80) BuySellEntry
 participant bs_init as init
-participant update_csv
 participant construct_buy_sell_frame
+participant update_csv
 end
 
 update_oldest_entry ->> fetch_all_listings: oldest_entry,<br/> buy_properties,<br/> sell_properties
@@ -242,6 +332,61 @@ update_csv ->> update_csv: update new entry<br/> in database
 
 ```
 
+### Sequence to update the oldest entry (v0.1.1)
+
+```mermaid
+sequenceDiagram
+participant update_oldest_entry
+participant update_all_listings
+
+box rgb(80,80,80) Payload
+participant payload_init as init
+end
+
+box rgb(80,80,80) ListingFetcher
+participant fetch_init as init
+participant fetch_listing
+participant extract_data
+end
+
+box rgb(80,80,80) BuySellEntry
+participant bs_init as init
+participant construct_buy_sell_frame
+participant update_csv
+end
+
+update_oldest_entry ->> update_all_listings: oldest_entry,<br/> buy_properties,<br/> sell_properties
+
+loop repeat for buy and sell 
+    update_all_listings ->> payload_init: oldest_entry, properties
+    payload_init ->> update_all_listings: payload
+
+    update_all_listings ->> fetch_init: payload
+    fetch_init ->> update_all_listings: fetcher
+
+    update_all_listings ->> fetch_listing: fetch the listing
+    fetch_listing ->> extract_data: extract the data
+
+    loop over all returned items
+        extract_data ->> extract_data: extract_properties
+        extract_data ->> extract_data: extract_gem_experience
+    end
+    extract_data ->> fetch_listing: listing data
+    fetch_listing ->> update_all_listings: 
+end
+
+update_all_listings ->> bs_init: listing data<br/>(buy and sell)
+bs_init ->> construct_buy_sell_frame: 
+construct_buy_sell_frame ->> construct_buy_sell_frame: convert_chaos_to_divine
+construct_buy_sell_frame ->> construct_buy_sell_frame: calculate_profit
+construct_buy_sell_frame ->> bs_init: buysellentry
+bs_init ->> update_all_listings: 
+
+update_all_listings ->> update_csv: buysellentry.update_csv()
+
+update_csv ->> update_csv: update new entry<br/> in database
+
+```
 
 ### Database
 
@@ -253,3 +398,147 @@ The database is represented as a collection of comma separated value files, each
 * (datetime as text) Time of last update
 
 The time of last update is stored as text with the following format: 2024-03-20 21:22:29.
+
+## v0.2.0
+
+### Class diagram overview (only critical dependencies shown)
+
+```mermaid
+classDiagram
+
+class poe_trade_rest{
+    + update_oldest_entry(group: str) None
+}
+
+class Database{
+    + update(group: str, entry: ItemEntry) None
+    + construct_ProfitMethod(buy_item: ItemEntry, sell_item: ItemEntry) ProfitStrat
+    + initialize_from_ninja(group: str) None
+}
+
+class ItemEntry{
+    + get_value_from_trade() None
+}
+
+class Fetcher{
+    - extract_listing(response_listing: json) Listing
+}
+
+poe_trade_rest --|> Database: Dependency
+Database --|> ItemEntry: Dependency
+Database --|> ProfitStrat: Dependency
+Database --|> poe_ninja_scraper: Dependency
+ItemEntry --|> Fetcher: Dependency
+Fetcher --|> Listing: Dependency
+
+```
+
+### Class diagram for poe_trade_rest
+
+```mermaid
+classDiagram
+class poe_trade_rest{
+    + update_oldest_entry(group: str) None
+}
+```
+### Class diagram for the Database class
+
+```mermaid
+classDiagram
+class Database{
+    <<Singleton>>
+    - instance: Database$
+    - Database()
+    + getInstance() Database$
+    - get_oldest_item_entry(group: str) ItemEntry
+    + initialize_from_ninja(group: str) None
+    + construct_ProfitStratCSV(group: str) None
+    + construct_ProfitStrat(buy_item: ItemEntry, sell_item: ItemEntry) ProfitStrat
+    + update(group: str, entry: ItemEntry) None
+}
+```
+
+### Class diagram for dataclasses
+
+```mermaid
+classDiagram
+class ProfitStrat{
+    <<dataclass>>
+    + id: int
+    + item_name: str
+    + buy_item: ItemEntry
+    + sell_item: ItemEntry
+    + profit: float
+    + to_str() str
+}
+
+class ItemEntry{
+    <<dataclass>>
+    + id: int
+    + item_name: str
+    + modifiers: dict[str, Any]
+    + url: str
+    + value: float
+    + nr_listed: int
+    + updated_at: datetime
+    + get_value_from_trade() None
+    + mods_to_str() str
+}
+
+class Listing{
+    <<dataclass>>
+    + price: float
+    + currency: str
+    + chaos_to_divine() None
+}
+```
+
+### Class diagram for functional classes
+
+```mermaid
+classDiagram
+class Fetcher{
+    - trade_url: str$
+    - header: dict$
+    - last_query_time: datetime$
+    + listings: list[Listing]
+    + url: str
+    + nr_listed: int
+    + Fetcher(item_name: str, modifiers: dict[str, Any])
+    + fetch() list[Listing]
+    - extract_listing(listing: json) Listing
+    - build_query(item_name: str, modifiers: dict[str, Any]) json
+}
+```
+
+## Future (v0.3.0+)
+
+### Additional "Item" functionality in the Listing class
+
+```mermaid
+classDiagram
+class Listing{
+    <<dataclass>>
+    + price: float
+    + currency: str
+    + listed_at: datetime
+    + Item: Item
+}
+
+class Item{
+    <<dataclass>>
+    + item_name: str
+    + ilvl: int
+    + identified: bool
+    + properties: dict[str, str]
+    + requirements: dict[str, str]
+    + explicit_mods: list[str]
+    + sockets: list[str]
+}
+```
+
+## Notes/Open Issues
+
+* Remove all unnecessary fields from extract_data/fetch_listing, only keep Price and Currency. These are the only fields that need updates, the query contains all item parameter from input.
+  * Be aware that saving intermediate data might still be interesting to improve algorithms 
+* Include gem XP in GemQueryBuilder

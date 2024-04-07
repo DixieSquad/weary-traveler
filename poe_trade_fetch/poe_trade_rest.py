@@ -10,7 +10,7 @@ load_dotenv()
 
 
 class ListingFetcher:
-    _trade_url = "https://www.pathofexile.com/api/trade/search/Affliction"
+    _trade_url = "https://www.pathofexile.com/api/trade/search/Necropolis"
     _header = {"user-agent": str(os.getenv("EMAIL"))}
     _last_query_time = datetime(2024, 1, 1, 00, 00, 00)
 
@@ -338,7 +338,7 @@ def get_gem_buy_sell_properties():
     buy_properties = {
         "payload_type": "buy",
         "status": "online",
-        "league": "Affliction",
+        "league": "Necropolis",
         "min_quality": None,
         "sort_by": "price",
         "corrupt": "false",
@@ -348,7 +348,7 @@ def get_gem_buy_sell_properties():
     sell_properties = {
         "payload_type": "sell",
         "status": "online",
-        "league": "Affliction",
+        "league": "Necropolis",
         "min_quality": 20,
         "sort_by": "price",
         "corrupt": "false",

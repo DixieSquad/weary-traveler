@@ -4,6 +4,7 @@ import time
 import tkinter as tk
 from datetime import datetime
 from tkinter import ttk
+from tkinter import messagebox
 
 import pandas as pd
 import poe_trade_rest
@@ -11,28 +12,28 @@ from ttkthemes import ThemedTk
 
 
 class BackgroundTask(threading.Thread):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._stop_event = threading.Event()
 
-    def stop(self):
+    def stop(self) -> None:
         self._stop_event.set()
 
-    def run(self):
+    def run(self) -> None:
         while not self._stop_event.is_set():
             print("Background Task is running...")
             poe_trade_rest.update_oldest_entry()
 
 
 class DataFrameApp:
-    def __init__(self, root):
+    def __init__(self, root: ThemedTk) -> None:
         self.root = root
         self.root.title("Weary Traveler")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         root.minsize(800, 800)
 
         self.selected_file = tk.StringVar()
-        self.dataframe = None
+        self.dataframe = pd.DataFrame()
 
         # Background progress stuff
         self.background_task = None
@@ -85,7 +86,7 @@ class DataFrameApp:
 
         self.load_dropdown_options()
 
-    def auto_refresh(self):
+    def auto_refresh(self) -> None:
         if self.background_task and self.background_task.is_alive():
             print("refreshed")
             self.load_dataframe()
@@ -96,8 +97,8 @@ class DataFrameApp:
             self.button_update.config(text="auto-update", state=tk.NORMAL)
             self.label_status.config(text="Paused.")
 
-    def get_relative_time(self, timestring):
-        updated_time = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S")
+    def get_relative_time(self, time: str) -> str:
+        updated_time = datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
         delta = datetime.now() - updated_time
         if delta.seconds <= 120 and delta.days == 0:
             updated = str(delta.seconds) + "s ago"
@@ -112,13 +113,13 @@ class DataFrameApp:
 
         return updated
 
-    def toggle_background_task(self):
+    def toggle_background_task(self) -> None:
         if self.background_task is None or not self.background_task.is_alive():
             self.start_background_task()
         else:
             self.stop_background_task()
 
-    def start_background_task(self):
+    def start_background_task(self) -> None:
         if self.background_task is None or not self.background_task.is_alive():
             self.background_task = BackgroundTask()
             self.background_task.start()
@@ -126,22 +127,22 @@ class DataFrameApp:
             self.button_update.config(text="Stop")
             self.label_status.config(text="Running updates...")
         else:
-            ttk.messagebox.showwarning("Warning", "Background task is already running.")
+            messagebox.showwarning("Warning", "Background task is already running.")
 
-    def stop_background_task(self):
+    def stop_background_task(self) -> None:
         if self.background_task and self.background_task.is_alive():
             self.background_task.stop()
             self.button_update.config(text="Stopping...", state=tk.DISABLED)
         else:
-            ttk.messagebox.showwarning("Warning", "No background task is running.")
+            messagebox.showwarning("Warning", "No background task is running.")
 
-    def load_dropdown_options(self):
+    def load_dropdown_options(self) -> None:
         # Load available CSV files in the 'Output' folder
         folder_path = os.path.join(os.getcwd(), "data/profit")
         files = [file for file in os.listdir(folder_path) if file.endswith(".csv")]
         self.dropdown["values"] = files
 
-    def load_dataframe(self):
+    def load_dataframe(self) -> None:
         # Load selected CSV file and display its contents in tree view
         filename = self.selected_file.get()
         if filename:
@@ -151,9 +152,9 @@ class DataFrameApp:
                 self.dataframe = pd.read_csv(file_path)
                 self.display_dataframe_in_treeview()
             except Exception as e:
-                ttk.messagebox.showerror("Error", f"Failed to load DataFrame: {e}")
+                messagebox.showerror("Error", f"Failed to load DataFrame: {e}")
 
-    def display_dataframe_in_treeview(self):
+    def display_dataframe_in_treeview(self) -> None:
         # Clear existing tree view
         for child in self.tree_view.get_children():
             self.tree_view.delete(child)
@@ -179,7 +180,7 @@ class DataFrameApp:
             row["Updated At"] = self.get_relative_time(row["Updated At"])
             self.tree_view.insert("", "end", values=list(row))
 
-    def on_close(self):
+    def on_close(self) -> None:
         if self.background_task and self.background_task.is_alive():
             print(
                 "Gracefully shutting down auto-update, this can take up to 10 seconds..."

@@ -1,7 +1,8 @@
 import os
 import time
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, List
 
 import pandas as pd
 import requests
@@ -122,6 +123,102 @@ class ListingFetcher:
             f"{'_'.join(item_words)}_{self.payload.payload_type}.csv",
         )
         df.to_csv(file_path)
+
+
+class Fetcher:
+    _trade_url = "https://www.pathofexile.com/api/trade/search/Necropolis"
+    _header = {"user-agent": str(os.getenv("EMAIL"))}
+    _last_query_time = datetime(2024, 1, 1, 00, 00, 00)
+
+    def __init__(self, item_name: str, modifiers: dict[str, Any]) -> None:
+        self.item_name = item_name
+        self.modifiers = modifiers
+        self.query = Fetcher.build_query(item_name, modifiers)
+        self.listings = []
+        self.number_listed = None
+
+    @staticmethod
+    def build_query(item_name, modifiers):
+
+        filters = {
+            "filters": {
+                "trade_filters": {"filters": {"price": {"option": "chaos_divine"}}}
+            }
+        }
+
+        if "min_quality" in modifiers or "corrupt" in modifiers:
+            filters["filters"]["misc_filters"] = {"filters": {}}
+
+            if "min_quality" in modifiers:
+                filters["filters"]["misc_filters"]["filters"]["quality"] = {
+                    "min": modifiers["min_quality"],
+                }
+
+            if "corrupted" in modifiers:
+                filters["filters"]["misc_filters"]["filters"]["corrupted"] = {
+                    "option": modifiers["corrupted"],
+                }
+
+            if "max_gem_level" in modifiers and "min_gem_level" in modifiers:
+                filters["filters"]["misc_filters"]["filters"]["gem_level"] = {
+                    "min": modifiers["min_gem_level"],
+                    "max": modifiers["max_gem_level"],
+                }
+
+            if "max_gem_level" in modifiers:
+                filters["filters"]["misc_filters"]["filters"]["gem_level"] = {
+                    "max": modifiers["max_gem_level"],
+                }
+
+            if "min_gem_level" in modifiers:
+                filters["filters"]["misc_filters"]["filters"]["gem_level"] = {
+                    "min": modifiers["min_gem_level"],
+                }
+
+        query = {
+            "query": {
+                "status": {"option": "online"},
+                "type": item_name,
+                "stats": [{"type": "and", "filters": []}],
+                **filters,
+            },
+            "sort": {"price": "asc"},
+        }
+
+        return query
+
+    def fetch(self):
+        seconds_since_last_query = (datetime.now() - self._last_query_time).seconds
+        while seconds_since_last_query < 10:
+            time.sleep(10 - seconds_since_last_query)
+            seconds_since_last_query = (datetime.now() - self._last_query_time).seconds
+
+        try:
+            r = requests.post(self._trade_url, headers=self._header, json=self.query)
+            r.raise_for_status()
+            self.number_listed = r.json().get("total", 0)
+            result = r.json().get("result", [])[:10]
+            result_id = r.json().get("id", "")
+            text_result = ",".join(result)
+            fetch_url = f"https://www.pathofexile.com/api/trade/fetch/{text_result}?query={result_id}"
+            response = requests.get(fetch_url, headers=self._header)
+            response.raise_for_status()
+
+        except requests.RequestException as e:
+            print("Error: ", e)
+
+        self.listings = self.extract_listings(response)
+
+    @staticmethod
+    def extract_listings(response: requests.Response) -> List[Listing]:
+        results = response.json().get("result", [])
+        listings = []
+        for result in results:
+            price_info = result.get("listing", {}).get("price", {})
+            price_amount = price_info.get("amount", "")
+            currency = price_info.get("currency", "")
+            listings.append(Listing(price=price_amount, currency=currency))
+        return listings
 
 
 class Payload:

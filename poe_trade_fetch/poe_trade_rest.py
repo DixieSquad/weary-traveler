@@ -298,6 +298,7 @@ class Listing:
     def __post_init__(self) -> None:
         if self.currency == "chaos":
             self.price = self.price / 120.0
+            self.currency = "divine"
 
 
 def update_all_listings(listing_item, buy_properties, sell_properties):

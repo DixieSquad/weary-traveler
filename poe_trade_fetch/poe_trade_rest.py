@@ -2,6 +2,7 @@ import os
 import time
 from datetime import datetime
 from dataclasses import dataclass
+from typing import Any
 
 import pandas as pd
 import requests
@@ -288,6 +289,31 @@ class BuySellEntry:
         df.set_index("Item Name", inplace=True)
 
         return df
+
+
+@dataclass
+class ItemEntry:
+    id: int
+    item_name: str
+    modifiers: dict[str, Any]
+    url: str
+    value: float
+    number_listed: int
+    updated_at: datetime
+
+    def mods_to_str(self) -> str:
+        mod_str = ""
+        for key, value in self.modifiers.items():
+            line = f"{key}: {value}"
+            if mod_str == "":
+                mod_str = line
+            else:
+                mod_str = "\n".join([mod_str, line])
+
+        return mod_str
+
+    def get_value_from_trade(self) -> None:
+        pass
 
 
 @dataclass

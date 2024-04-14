@@ -19,6 +19,7 @@ class Listing:
     def __post_init__(self) -> None:
         if self.currency == "chaos":
             self.price = self.price / 120.0
+            self.currency = "divine"
 
 
 class Fetcher:

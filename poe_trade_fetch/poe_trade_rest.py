@@ -78,10 +78,16 @@ class ListingFetcher:
 
             indexed = listing.get("indexed", "")
             stash_name = listing.get("stash", {}).get("name", "")
-            account_name = listing.get("account", {}).get("name", "")
-            player_status = (
-                listing.get("account", {}).get("online", {}).get("status", "")
-            )
+            account = listing.get("account", {})
+            account_name = account.get("name", "")
+
+            if account.get("online", {}) == None:
+                player_status = "Offline"
+            elif account.get("online", {}).get("status", "") == "":
+                player_status = "Online"
+            else:
+                player_status = account.get("online", {}).get("status", "")
+
             price_amount = listing.get("price", {}).get("amount", "")
             currency = listing.get("price", {}).get("currency", "")
 

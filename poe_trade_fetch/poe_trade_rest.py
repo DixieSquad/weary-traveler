@@ -218,7 +218,22 @@ class ItemEntry:
         return mod_str
 
     def get_value_from_trade(self) -> None:
-        pass
+        fetcher = Fetcher(self.item_name, self.modifiers)
+        fetcher.fetch()
+
+        if fetcher.listings == []:
+            return
+
+        price_sum = 0.0
+        n = 0
+        for listing in fetcher.listings:
+            n += 1
+            price_sum += listing.price
+
+        price_mean = price_sum / n
+
+        self.value = price_mean
+        self.updated_at = datetime.now()
 
 
 def update_all_listings(listing_item, buy_properties, sell_properties):

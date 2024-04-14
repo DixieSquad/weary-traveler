@@ -283,7 +283,7 @@ class BuySellEntry:
             "Profit": self.profit,
             "Updated At": self.update_at,
         }
-        df = pd.DataFrame(d, index=[0])
+        df = pd.DataFrame.from_dict(d)
         df.set_index("Item Name", inplace=True)
 
         return df

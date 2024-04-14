@@ -1,6 +1,7 @@
 import os
 import time
 from datetime import datetime
+from dataclasses import dataclass
 
 import pandas as pd
 import requests
@@ -287,6 +288,16 @@ class BuySellEntry:
         df.set_index("Item Name", inplace=True)
 
         return df
+
+
+@dataclass
+class Listing:
+    price: float
+    currency: str
+
+    def __post_init__(self) -> None:
+        if self.currency == "chaos":
+            self.price = self.price / 120.0
 
 
 def update_all_listings(listing_item, buy_properties, sell_properties):

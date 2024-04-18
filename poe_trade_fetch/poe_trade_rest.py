@@ -3,7 +3,7 @@ import os
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, List
+from typing import Any, Self
 
 import pandas as pd
 import requests
@@ -108,7 +108,7 @@ class Fetcher:
             print("Error: ", e)
 
     @staticmethod
-    def extract_listings(response: requests.Response) -> List[Listing]:
+    def extract_listings(response: requests.Response) -> list[Listing]:
         results = response.json().get("result", [])
         listings = []
         for result in results:
@@ -208,8 +208,7 @@ class ItemEntry:
     updated_at: datetime
 
     def __eq__(self, other: Self) -> bool:
-        return (self.item_name == other.item_name and 
-                self.modifiers == self.modifiers)
+        return self.item_name == other.item_name and self.modifiers == self.modifiers
 
     def mods_to_str(self) -> str:
         mod_str = ""
@@ -245,9 +244,7 @@ class DataHandler:
     def __init__(self) -> None:
         current_working_dir = os.getcwd()
         folder_path = os.path.join(current_working_dir, "data/item_entries")
-        self.item_entry_file = os.path.join(
-            folder_path, "awakened_gems.json"
-        )
+        self.item_entry_file = os.path.join(folder_path, "awakened_gems.json")
 
         # ensure the directory exists, no error is raised if it does.
         os.makedirs(folder_path, exist_ok=True)
@@ -257,12 +254,12 @@ class DataHandler:
             with open(self.item_entry_file, "w") as json_file:
                 json.dump({}, json_file)
 
-    def write_profit_strat(self, buy: ItemEntry, sell: ItemEntry) -> ProfitStrat:
+    def write_profit_strat(self, buy: ItemEntry, sell: ItemEntry):
         pass
 
     def write_item_entry(self, item_entry: ItemEntry):
         items = []
-        with open(self.item_entry_file, 'r') as f:
+        with open(self.item_entry_file, "r") as f:
             data = json.load(f)
             for i in data:
                 item = ItemEntry(**i)
@@ -273,48 +270,11 @@ class DataHandler:
         else:
             items.append(item_entry)
 
-        with open('json_file', 'w') as f:
-            json.dumps(items, f)
+        with open("json_file", "w") as f:
+            json.dump(items, f)
 
-    def read_item_entry(self, item_name: str, modifiers: dict[str, Any]) -> ItemEntry:
-        ``` Used to pass a list of item entries to ProfitStrat ``` 
+    def read_item_entry(self, item_name: str, modifiers: dict[str, Any]):
         pass
-
-
-def update_all_listings(listing_item, buy_properties, sell_properties):
-    for name in listing_item:
-        buy_payload = Payload(
-            payload_type=buy_properties["payload_type"],
-            item_type=name,
-            status=buy_properties["status"],
-            league=buy_properties["league"],
-            min_quality=buy_properties["min_quality"],
-            sort_by=buy_properties["sort_by"],
-            corrupt=buy_properties["corrupt"],
-            max_gem_level=buy_properties["max_gem_level"],
-            sort_order=buy_properties["sort_order"],
-        )
-        sell_payload = Payload(
-            payload_type=sell_properties["payload_type"],
-            item_type=name,
-            status=sell_properties["status"],
-            league=sell_properties["league"],
-            min_quality=sell_properties["min_quality"],
-            sort_by=sell_properties["sort_by"],
-            corrupt=sell_properties["corrupt"],
-            min_gem_level=sell_properties["min_gem_level"],
-            sort_order=sell_properties["sort_order"],
-        )
-        buy_fetcher = ListingFetcher(buy_payload)
-        sell_fetcher = ListingFetcher(sell_payload)
-
-        buy_data = buy_fetcher.fetch_listing()
-        sell_data = sell_fetcher.fetch_listing()
-
-        buy_sell_entry = BuySellEntry(name, buy_data, sell_data)
-        buy_sell_entry.update_csv()  # Save profit frame for UI
-        # buy_fetcher.save_data()  # Save buy data for potential history
-        # sell_fetcher.save_data()  # Save sell data for potential history
 
 
 def get_oldest_entry(group_name="awakened_gems.csv"):
@@ -330,36 +290,3 @@ def get_oldest_entry(group_name="awakened_gems.csv"):
     oldest_entry = df["Updated At"].idxmin()
 
     return oldest_entry
-
-
-def get_gem_buy_sell_properties():
-    buy_properties = {
-        "payload_type": "buy",
-        "status": "online",
-        "league": "Necropolis",
-        "min_quality": None,
-        "sort_by": "price",
-        "corrupt": "false",
-        "max_gem_level": 1,
-        "sort_order": "asc",
-    }
-    sell_properties = {
-        "payload_type": "sell",
-        "status": "online",
-        "league": "Necropolis",
-        "min_quality": 20,
-        "sort_by": "price",
-        "corrupt": "false",
-        "min_gem_level": 5,
-        "sort_order": "asc",
-    }
-
-    return {"buy": buy_properties, "sell": sell_properties}
-
-
-def update_oldest_entry():
-    update_all_listings(
-        [get_oldest_entry()],
-        get_gem_buy_sell_properties()["buy"],
-        get_gem_buy_sell_properties()["sell"],
-    )

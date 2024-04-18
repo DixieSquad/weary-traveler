@@ -3,7 +3,7 @@ import os
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, List
+from typing import Any, List, Self
 
 import pandas as pd
 import requests
@@ -207,6 +207,10 @@ class ItemEntry:
     number_listed: int
     updated_at: datetime
 
+    def __eq__(self, other: Self) -> bool:
+        return (self.item_name == other.item_name and 
+                self.modifiers == self.modifiers)
+
     def mods_to_str(self) -> str:
         mod_str = ""
         for key, value in self.modifiers.items():
@@ -263,7 +267,7 @@ class DataHandler:
         pass
 
 
-ef update_all_listings(listing_item, buy_properties, sell_properties):
+def update_all_listings(listing_item, buy_properties, sell_properties):
     for name in listing_item:
         buy_payload = Payload(
             payload_type=buy_properties["payload_type"],

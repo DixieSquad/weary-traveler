@@ -1,6 +1,8 @@
 import os
 import time
+from dataclasses import dataclass
 from datetime import datetime
+from typing import Any, List
 
 import pandas as pd
 import requests
@@ -9,161 +11,31 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-class ListingFetcher:
+@dataclass
+class Listing:
+    price: float
+    currency: str
+
+    def __post_init__(self) -> None:
+        if self.currency == "chaos":
+            self.price = self.price / 120.0
+            self.currency = "divine"
+
+
+class Fetcher:
     _trade_url = "https://www.pathofexile.com/api/trade/search/Necropolis"
     _header = {"user-agent": str(os.getenv("EMAIL"))}
     _last_query_time = datetime(2024, 1, 1, 00, 00, 00)
 
-    def __init__(self, payload) -> None:
-        self.payload = payload
+    def __init__(self, item_name: str, modifiers: dict[str, Any]) -> None:
+        self.item_name = item_name
+        self.modifiers = modifiers
+        self.query = Fetcher.build_query(item_name, modifiers)
+        self.listings = []
+        self.number_listed = None
 
-    def fetch_listing(self) -> pd.DataFrame:
-        seconds_since_last_query = (datetime.now() - self._last_query_time).seconds
-
-        while seconds_since_last_query < 10:
-            time.sleep(10 - seconds_since_last_query)
-            seconds_since_last_query = (datetime.now() - self._last_query_time).seconds
-
-        try:
-            r = requests.post(
-                self._trade_url, headers=self._header, json=self.payload.query
-            )
-            r.raise_for_status()
-            result = r.json().get("result", [])[:10]
-            result_id = r.json().get("id", "")
-            text_result = ",".join(result)
-            fetch_url = f"https://www.pathofexile.com/api/trade/fetch/{text_result}?query={result_id}"
-            listings = requests.get(fetch_url, headers=self._header)
-            r.raise_for_status()
-            listing_results = listings.json().get("result", [])
-            ListingFetcher._last_query_time = datetime.now()
-
-            extracted_data = self.extract_data(listing_results)
-
-            return pd.DataFrame(extracted_data)
-        except requests.RequestException as e:
-            print("Error: ", e)
-            return pd.DataFrame()
-
-    def extract_properties(self, item_properties):
-        item_level, item_quality = None, None
-        for prop in item_properties:
-            if prop["name"] == "Level":
-                item_level = prop["values"][0][0]
-            elif prop["name"] == "Quality":
-                item_quality = prop["values"][0][0]
-
-        return item_level, item_quality
-
-    def extract_gem_experience(self, additional_properties):
-        for prop in additional_properties:
-            if prop.get("name") == "Experience":
-                return prop.get("values", [])[0][0]
-        return None
-
-    def extract_data(self, listing_results: list[dict]) -> list[dict]:
-        extracted_data = []
-
-        for item in listing_results:
-            listing = item.get("listing", {})
-            item_info = item.get("item", {})
-
-            item_name = item_info.get("typeLine", "")
-            item_properties = item_info.get("properties", [])
-            item_corrupted = item_info.get("corrupted", False)
-            item_level, item_quality = self.extract_properties(item_properties)
-            gem_experience = self.extract_gem_experience(
-                item_info.get("additionalProperties", [])
-            )
-
-            indexed = listing.get("indexed", "")
-            stash_name = listing.get("stash", {}).get("name", "")
-            account = listing.get("account", {})
-            account_name = account.get("name", "")
-
-            if account.get("online", {}) == None:
-                player_status = "Offline"
-            elif account.get("online", {}).get("status", "") == "":
-                player_status = "Online"
-            else:
-                player_status = account.get("online", {}).get("status", "")
-
-            price_amount = listing.get("price", {}).get("amount", "")
-            currency = listing.get("price", {}).get("currency", "")
-
-            row = {
-                "Item Name": item_name,
-                "Item Level": item_level,
-                "Item Quality": item_quality,
-                "Corrupted": item_corrupted,
-                "Experience": gem_experience,
-                "Indexed": indexed,
-                "Stash Name": stash_name,
-                "Account Name": account_name,
-                "Player Status": player_status,
-                "Price Amount": price_amount,
-                "Currency": currency,
-            }
-
-            extracted_data.append(row)
-
-        return extracted_data
-
-    def save_data(self):
-        df = self.fetch_listing()
-        item_words = self.payload.item_type.split()
-        current_working_dir = os.getcwd()
-        folder_path = os.path.join(current_working_dir, "data/trade")
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
-        file_path = os.path.join(
-            folder_path,
-            f"{'_'.join(item_words)}_{self.payload.payload_type}.csv",
-        )
-        df.to_csv(file_path)
-
-
-class Payload:
-    def __init__(
-        self,
-        payload_type=None,
-        status="online",
-        item_type="",
-        league="Affliction",
-        min_quality=None,
-        sort_by=None,
-        corrupt=None,
-        max_gem_level=None,
-        min_gem_level=None,
-        sort_order="asc",
-    ) -> None:
-        self.status = status
-        self.item_type = item_type
-        self.league = league
-        self.sort_by = sort_by
-        self.sort_order = sort_order
-        self.min_quality = min_quality
-        self.corrupt = corrupt
-        self.max_gem_level = max_gem_level
-        self.min_gem_level = min_gem_level
-        self.payload_type = payload_type
-
-        sort_field = (
-            "price"
-            if sort_by
-            not in [
-                "price",
-                "gem_level",
-                "quality",
-                "indexed",
-                "gem_level_progress",
-                "lvl",
-                "int",
-                "str",
-                "dex",
-            ]
-            else sort_by
-        )
+    @staticmethod
+    def build_query(item_name, modifiers):
 
         filters = {
             "filters": {
@@ -171,44 +43,79 @@ class Payload:
             }
         }
 
-        if self.min_quality is not None or self.corrupt is not None:
+        if "min_quality" in modifiers or "corrupt" in modifiers:
             filters["filters"]["misc_filters"] = {"filters": {}}
 
-            if self.min_quality is not None:
+            if "min_quality" in modifiers:
                 filters["filters"]["misc_filters"]["filters"]["quality"] = {
-                    "min": self.min_quality,
+                    "min": modifiers["min_quality"],
                 }
 
-            if self.corrupt is not None:
+            if "corrupted" in modifiers:
                 filters["filters"]["misc_filters"]["filters"]["corrupted"] = {
-                    "option": self.corrupt,
+                    "option": modifiers["corrupted"],
                 }
 
-            if self.max_gem_level is not None and self.min_gem_level is not None:
+            if "max_gem_level" in modifiers and "min_gem_level" in modifiers:
                 filters["filters"]["misc_filters"]["filters"]["gem_level"] = {
-                    "min": self.min_gem_level,
-                    "max": self.max_gem_level,
+                    "min": modifiers["min_gem_level"],
+                    "max": modifiers["max_gem_level"],
                 }
 
-            if self.max_gem_level is not None:
+            if "max_gem_level" in modifiers:
                 filters["filters"]["misc_filters"]["filters"]["gem_level"] = {
-                    "max": self.max_gem_level,
+                    "max": modifiers["max_gem_level"],
                 }
 
-            if self.min_gem_level is not None:
+            if "min_gem_level" in modifiers:
                 filters["filters"]["misc_filters"]["filters"]["gem_level"] = {
-                    "min": self.min_gem_level,
+                    "min": modifiers["min_gem_level"],
                 }
 
-        self.query = {
+        query = {
             "query": {
-                "status": {"option": self.status},
-                "type": self.item_type,
+                "status": {"option": "online"},
+                "type": item_name,
                 "stats": [{"type": "and", "filters": []}],
                 **filters,
             },
-            "sort": {sort_field: self.sort_order},
+            "sort": {"price": "asc"},
         }
+
+        return query
+
+    def fetch(self) -> None:
+        seconds_since_last_query = (datetime.now() - self._last_query_time).seconds
+        while seconds_since_last_query < 10:
+            time.sleep(10 - seconds_since_last_query)
+            seconds_since_last_query = (datetime.now() - self._last_query_time).seconds
+
+        try:
+            r = requests.post(self._trade_url, headers=self._header, json=self.query)
+            r.raise_for_status()
+            self.number_listed = r.json().get("total", 0)
+            result = r.json().get("result", [])[:10]
+            result_id = r.json().get("id", "")
+            text_result = ",".join(result)
+            fetch_url = f"https://www.pathofexile.com/api/trade/fetch/{text_result}?query={result_id}"
+            response = requests.get(fetch_url, headers=self._header)
+            response.raise_for_status()
+
+            self.listings = self.extract_listings(response)
+
+        except requests.RequestException as e:
+            print("Error: ", e)
+
+    @staticmethod
+    def extract_listings(response: requests.Response) -> List[Listing]:
+        results = response.json().get("result", [])
+        listings = []
+        for result in results:
+            price_info = result.get("listing", {}).get("price", {})
+            price_amount = price_info.get("amount", "")
+            currency = price_info.get("currency", "")
+            listings.append(Listing(price=price_amount, currency=currency))
+        return listings
 
 
 class BuySellEntry:
@@ -287,6 +194,46 @@ class BuySellEntry:
         df.set_index("Item Name", inplace=True)
 
         return df
+
+
+@dataclass
+class ItemEntry:
+    id: int
+    item_name: str
+    modifiers: dict[str, Any]
+    url: str
+    value: float
+    number_listed: int
+    updated_at: datetime
+
+    def mods_to_str(self) -> str:
+        mod_str = ""
+        for key, value in self.modifiers.items():
+            line = f"{key}: {value}"
+            if mod_str == "":
+                mod_str = line
+            else:
+                mod_str = "\n".join([mod_str, line])
+
+        return mod_str
+
+    def get_value_from_trade(self) -> None:
+        fetcher = Fetcher(self.item_name, self.modifiers)
+        fetcher.fetch()
+
+        if fetcher.listings == []:
+            return
+
+        price_sum = 0.0
+        n = 0
+        for listing in fetcher.listings:
+            n += 1
+            price_sum += listing.price
+
+        price_mean = price_sum / n
+
+        self.value = price_mean
+        self.updated_at = datetime.now()
 
 
 def update_all_listings(listing_item, buy_properties, sell_properties):

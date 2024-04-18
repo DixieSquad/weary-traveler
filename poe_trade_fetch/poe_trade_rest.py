@@ -1,9 +1,9 @@
 import json
 import os
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Self
+from typing import Any
 
 import pandas as pd
 import requests
@@ -170,29 +170,66 @@ class ProfitStrat:
     item_name: str
     buy_item: ItemEntry
     sell_item: ItemEntry
-    profit: float
+    profit: float = field(init=False) # init=false added otherwise it required initialization on line 201
 
     def __post_init__(self):
         self.profit = self.sell_item.value - self.buy_item.value
+
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, ProfitStrat)
+            and self.buy_item == other.buy_item
+            and self.sell_item == other.sell_item
+        )
 
 
 class DataHandler:
     def __init__(self) -> None:
         current_working_dir = os.getcwd()
-        folder_path = os.path.join(current_working_dir, "data/item_entries")
-        self.item_entry_file = os.path.join(folder_path, "awakened_gems.json")
+        item_folder_path = os.path.join(current_working_dir, "data/item_entries")
+        self.item_entry_file = os.path.join(item_folder_path, "awakened_gems.json")
+
+        profit_folder_path = os.path.join(current_working_dir, "data/profit_strats")
+        self.profit_strat_file = os.path.join(profit_folder_path, "awakened_gems.json")
 
         # ensure the directory exists, no error is raised if it does.
-        os.makedirs(folder_path, exist_ok=True)
+        os.makedirs(item_folder_path, exist_ok=True)
+        os.makedirs(profit_folder_path, exist_ok=True)
 
-        # check if file exists
+        # check if item entry file exists
         if not os.path.exists(self.item_entry_file):
             with open(self.item_entry_file, "w") as json_file:
                 json.dump({}, json_file)
+        # check if profit strat file exists
+        if not os.path.exists(self.profit_strat_file):
+            with open(self.profit_strat_file, "w") as json_file:
+                json.dump({}, json_file)
+    
+    #TODO: Use write_profit_strat and figure out how we know which buy and which sell entry to take (based on last written item_entry, method on line 220).
+    def write_profit_strat(self, buy: ItemEntry, sell: ItemEntry): # Can also feed ProfitStrat, but creating it would require its own method (see line 200)
+        strats = []
 
-    def write_profit_strat(self, buy: ItemEntry, sell: ItemEntry):
-        pass
+        # This can also be it's separate method, i.e., creating the ProfitStrat. But this works too, unless we need the profit strat class anywhere else
+        profit_strat = ProfitStrat(item_name= buy.item_name, buy_item=buy, sell_item=sell, id=0)
+        # 
+        
+        # The rest is basically the same as write_item_entry
+        with open(self.profit_strat_file, "r") as f:
+            data = json.load(f)
+            for s in data:
+                strat = ProfitStrat(**s)
+                strats.append(strat)
+        
+        #NOTE: We are only converting the json to a list of ProfitStrats to check if profit_strat is in strats. Whereafter we turn everything back into json. There might be a more elegant way of doing this. (I.e., keeping everything in json format. However, we would lose using the __eq__ functionality. So maybe leave it as is.) Same goes for write_item_entry.
+        if profit_strat in strats:
+            strats[strats.index(profit_strat)] = profit_strat
+        else:
+            strats.append(profit_strat)
 
+        with open(self.profit_strat_file, "w") as f:
+            json.dump(strats, f, default=str)
+    
+    #TODO: Use write_item_entry and figure out how we know which item_entry to write (based on oldest entry first)
     def write_item_entry(self, item_entry: ItemEntry):
         items = []
         with open(self.item_entry_file, "r") as f:

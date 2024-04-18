@@ -225,12 +225,10 @@ class ItemEntry:
             return
 
         price_sum = 0.0
-        n = 0
         for listing in fetcher.listings:
-            n += 1
             price_sum += listing.price
 
-        price_mean = price_sum / n
+        price_mean = price_sum / len(fetcher.listings)
 
         self.value = price_mean
         self.updated_at = datetime.now()

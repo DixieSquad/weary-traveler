@@ -207,8 +207,8 @@ class ItemEntry:
     number_listed: int
     updated_at: datetime
 
-    def __eq__(self, other: Self) -> bool:
-        return self.item_name == other.item_name and self.modifiers == self.modifiers
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, ItemEntry) and self.item_name == other.item_name and self.modifiers == other.modifiers
 
     def mods_to_str(self) -> str:
         mod_str = ""
@@ -270,10 +270,10 @@ class DataHandler:
         else:
             items.append(item_entry)
 
-        with open("json_file", "w") as f:
-            json.dump(items, f)
+        with open(self.item_entry_file, "w") as f:
+            json.dump(items, f, default=str)
 
-    def read_item_entry(self, item_name: str, modifiers: dict[str, Any]):
+    def read_profit_entry(self, item_name: str, modifiers: dict[str, Any]):
         pass
 
 

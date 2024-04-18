@@ -196,6 +196,44 @@ class BuySellEntry:
         return df
 
 
+@dataclass
+class ItemEntry:
+    id: int
+    item_name: str
+    modifiers: dict[str, Any]
+    url: str
+    value: float
+    number_listed: int
+    updated_at: datetime
+
+    def mods_to_str(self) -> str:
+        mod_str = ""
+        for key, value in self.modifiers.items():
+            line = f"{key}: {value}"
+            if mod_str == "":
+                mod_str = line
+            else:
+                mod_str = "\n".join([mod_str, line])
+
+        return mod_str
+
+    def get_value_from_trade(self) -> None:
+        fetcher = Fetcher(self.item_name, self.modifiers)
+        fetcher.fetch()
+
+        if fetcher.listings == []:
+            return
+
+        price_sum = 0.0
+        for listing in fetcher.listings:
+            price_sum += listing.price
+
+        price_mean = price_sum / len(fetcher.listings)
+
+        self.value = price_mean
+        self.updated_at = datetime.now()
+
+
 def update_all_listings(listing_item, buy_properties, sell_properties):
     for name in listing_item:
         buy_payload = Payload(

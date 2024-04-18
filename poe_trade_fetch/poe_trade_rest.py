@@ -118,84 +118,6 @@ class Fetcher:
         return listings
 
 
-class BuySellEntry:
-
-    def __init__(
-        self, name: str, buy_data: pd.DataFrame, sell_data: pd.DataFrame
-    ) -> None:
-
-        buy_sell_dict = {}
-        self.item_name = name
-
-        if buy_data.empty:
-            self.buy_value = None
-        else:
-            buy_data = buy_data.astype({"Price Amount": float})
-            buy_data = self.convert_chaos_to_divine(buy_data)
-            self.buy_value = round(buy_data["Price Amount"].mean(), 1)
-
-        if sell_data.empty:
-            self.sell_value = None
-        else:
-            sell_data = sell_data.astype({"Price Amount": float})
-            sell_data = self.convert_chaos_to_divine(sell_data)
-            self.sell_value = round(sell_data["Price Amount"].mean(), 1)
-
-        if buy_data.empty or sell_data.empty:
-            self.profit = None
-        else:
-            self.profit = round(
-                self.calculate_profit(self.sell_value, self.buy_value), 1
-            )
-
-        self.update_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    def convert_chaos_to_divine(self, data):
-        data.loc[data["Currency"] == "chaos", "Price Amount"] = (
-            data.loc[data["Currency"] == "chaos", "Price Amount"] / 128
-        )
-        return data
-
-    def calculate_profit(self, sell_value, buy_value):
-        return sell_value - buy_value
-
-    def update_csv(self):
-        entry = self.to_dataframe()
-
-        current_working_dir = os.getcwd()
-        file_path = os.path.join(
-            current_working_dir, "data/profit", "awakened_gems.csv"
-        )
-
-        # ensure the directory exists, no error is raised if it does.
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
-        # check if file exists
-        if os.path.exists(file_path):
-            df = pd.read_csv(file_path, index_col="Item Name")
-            # match datatypes of entry_df and file
-            entry = entry.astype(df.dtypes)
-            # combines per value basis not rows. If new value doesn't exist, keep old value.
-            df = entry.combine_first(df)
-        else:
-            df = entry
-
-        df.to_csv(file_path)
-
-    def to_dataframe(self) -> pd.DataFrame:
-        d = {
-            "Item Name": self.item_name,
-            "Buy": self.buy_value,
-            "Sell": self.sell_value,
-            "Profit": self.profit,
-            "Updated At": self.update_at,
-        }
-        df = pd.DataFrame(d, index=[0])
-        df.set_index("Item Name", inplace=True)
-
-        return df
-
-
 @dataclass
 class ItemEntry:
     id: int
@@ -232,6 +154,18 @@ class ItemEntry:
 
         self.value = price_mean
         self.updated_at = datetime.now()
+
+
+@dataclass
+class ProfitStrat:
+    id: int
+    item_name: str
+    buy_item: ItemEntry
+    sell_item: ItemEntry
+    profit: float
+
+    def __post_init__(self):
+        self.profit = self.sell_item.value - self.buy_item.value
 
 
 def update_all_listings(listing_item, buy_properties, sell_properties):

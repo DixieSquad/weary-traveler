@@ -3,7 +3,7 @@ import os
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, List, Self
+from typing import Any, List
 
 import pandas as pd
 import requests
@@ -243,24 +243,38 @@ class ItemEntry:
 
 class DataHandler:
     def __init__(self) -> None:
-        pass
+        current_working_dir = os.getcwd()
+        folder_path = os.path.join(current_working_dir, "data/item_entries")
+        self.item_entry_file = os.path.join(
+            folder_path, "awakened_gems.json"
+        )
+
+        # ensure the directory exists, no error is raised if it does.
+        os.makedirs(folder_path, exist_ok=True)
+
+        # check if file exists
+        if not os.path.exists(self.item_entry_file):
+            with open(self.item_entry_file, "w") as json_file:
+                json.dump({}, json_file)
 
     def write_profit_strat(self, buy: ItemEntry, sell: ItemEntry) -> ProfitStrat:
         pass
 
     def write_item_entry(self, item_entry: ItemEntry):
-        ``` If doesn't exist -> write, if exists -> update ```
         items = []
-        with open('json_file', 'r') as f:
+        with open(self.item_entry_file, 'r') as f:
             data = json.load(f)
             for i in data:
                 item = ItemEntry(**i)
                 items.append(item)
 
-        if item_entry.item_name 
+        if item_entry in items:
+            items[items.index(item_entry)] = item_entry
+        else:
+            items.append(item_entry)
 
         with open('json_file', 'w') as f:
-            json.dumps(dataclasses.asdict(item_entry), f, indent=2)
+            json.dumps(items, f)
 
     def read_item_entry(self, item_name: str, modifiers: dict[str, Any]) -> ItemEntry:
         ``` Used to pass a list of item entries to ProfitStrat ``` 

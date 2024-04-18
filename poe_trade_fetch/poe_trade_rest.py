@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from dataclasses import dataclass
@@ -236,7 +237,33 @@ class ItemEntry:
         self.updated_at = datetime.now()
 
 
-def update_all_listings(listing_item, buy_properties, sell_properties):
+class DataHandler:
+    def __init__(self) -> None:
+        pass
+
+    def write_profit_strat(self, buy: ItemEntry, sell: ItemEntry) -> ProfitStrat:
+        pass
+
+    def write_item_entry(self, item_entry: ItemEntry):
+        ``` If doesn't exist -> write, if exists -> update ```
+        items = []
+        with open('json_file', 'r') as f:
+            data = json.load(f)
+            for i in data:
+                item = ItemEntry(**i)
+                items.append(item)
+
+        if item_entry.item_name 
+
+        with open('json_file', 'w') as f:
+            json.dumps(dataclasses.asdict(item_entry), f, indent=2)
+
+    def read_item_entry(self, item_name: str, modifiers: dict[str, Any]) -> ItemEntry:
+        ``` Used to pass a list of item entries to ProfitStrat ``` 
+        pass
+
+
+ef update_all_listings(listing_item, buy_properties, sell_properties):
     for name in listing_item:
         buy_payload = Payload(
             payload_type=buy_properties["payload_type"],

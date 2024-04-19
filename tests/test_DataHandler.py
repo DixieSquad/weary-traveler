@@ -1,5 +1,5 @@
 import pytest
-from poe_trade_fetch.poe_trade_rest import DataHandler, ItemEntry
+from poe_trade_fetch.poe_trade_rest import DataHandler, ItemEntry, ProfitStrat
 from datetime import datetime, timedelta
 import os
 import shutil
@@ -34,6 +34,16 @@ def item_entry() -> ItemEntry:
     return item_entry
 
 
+@pytest.fixture
+def profit_strat(item_entry) -> ProfitStrat:
+    buy_entry = ItemEntry(**item_entry.__dict__)
+    sell_entry = ItemEntry(**item_entry.__dict__)
+    sell_entry.modifiers = {"mod1": 100}
+    sell_entry.value = 100
+    profit_strat = ProfitStrat(buy_entry.item_name, buy_entry, sell_entry)
+    return profit_strat
+
+
 class TestItemEntry:
     def test_item_entry_equals(self, item_entry: ItemEntry) -> None:
         assert item_entry == item_entry
@@ -50,6 +60,13 @@ class TestDataHandler:
     @pytest.fixture
     def datahandler(self, prep_and_clean_data: None) -> DataHandler:
         return DataHandler()
+
+    @pytest.fixture
+    def setup_entries(
+        self, datahandler: DataHandler, profit_strat: ProfitStrat
+    ) -> None:
+        datahandler.write_item_entry(profit_strat.buy_item)
+        datahandler.write_item_entry(profit_strat.sell_item)
 
     def test_saving_and_loading_json(
         self, item_entry: ItemEntry, datahandler: DataHandler
@@ -109,3 +126,10 @@ class TestDataHandler:
         )
         item_entries = datahandler.read_all_item_entries()
         assert item_entry1 in item_entries and item_entry2 in item_entries
+
+    def test_update_profit_strats(
+        self, setup_entries, datahandler: DataHandler, profit_strat: ProfitStrat
+    ):
+        datahandler.update_profit_strats(profit_strat.buy_item.item_name)
+        profit_strats = datahandler.read_profit_strats(profit_strat.buy_item.item_name)
+        assert profit_strat in profit_strats

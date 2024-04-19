@@ -1,3 +1,4 @@
+import dataclasses
 import json
 import os
 import time
@@ -168,11 +169,14 @@ class ProfitStrat:
     item_name: str
     buy_item: ItemEntry
     sell_item: ItemEntry
-    profit: float = field(
-        init=False
-    )  # init=false added otherwise it required initialization on line 201
+    profit: float = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
+        if isinstance(self.buy_item, dict):
+            self.buy_item = ItemEntry(**self.buy_item)
+        if isinstance(self.sell_item, dict):
+            self.sell_item = ItemEntry(**self.sell_item)
+
         self.profit = self.sell_item.value - self.buy_item.value
 
     def __eq__(self, other: object) -> bool:
@@ -181,6 +185,13 @@ class ProfitStrat:
             and self.buy_item == other.buy_item
             and self.sell_item == other.sell_item
         )
+
+
+class EnhancedJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if dataclasses.is_dataclass(o):
+            return dataclasses.asdict(o)
+        return super().default(o)
 
 
 class DataHandler:
@@ -206,16 +217,8 @@ class DataHandler:
                 json.dump({}, json_file)
 
     # TODO: Use write_profit_strat and figure out how we know which buy and which sell entry to take (based on last written item_entry, method on line 220).
-    def write_profit_strat(
-        self, buy: ItemEntry, sell: ItemEntry
-    ):  # Can also feed ProfitStrat, but creating it would require its own method (see line 200)
+    def write_profit_strat(self, profit_strat: ProfitStrat) -> None:
         strats = []
-
-        # This can also be it's separate method, i.e., creating the ProfitStrat. But this works too, unless we need the profit strat class anywhere else
-        profit_strat = ProfitStrat(
-            item_name=buy.item_name, buy_item=buy, sell_item=sell
-        )
-
         # The rest is basically the same as write_item_entry
         with open(self.profit_strat_file, "r") as f:
             data = json.load(f)
@@ -231,7 +234,7 @@ class DataHandler:
 
         with open(self.profit_strat_file, "w") as f:
             strats = [strat.__dict__ for strat in strats]
-            json.dump(strats, f, default=str)
+            json.dump(strats, f, cls=EnhancedJSONEncoder)
 
     # TODO: Use write_item_entry and figure out how we know which item_entry to write (based on oldest entry first)
     def write_item_entry(self, item_entry: ItemEntry):
@@ -255,8 +258,20 @@ class DataHandler:
                 items.append(item)
         return items
 
-    def read_profit_entry(self, item_name: str, modifiers: dict[str, Any]):
-        pass
+    def get_item_entries_by_name(self, item_name: str) -> list[ItemEntry]:
+        items = self.read_all_item_entries()
+        items = [item for item in items if item.item_name == item_name]
+        return items
+
+    def read_profit_strats(self, item_name: str) -> list[ProfitStrat]:
+        items: list[ProfitStrat] = []
+        with open(self.profit_strat_file, "r") as f:
+            data = json.load(f)
+            for i in data:
+                item = ProfitStrat(**i)
+                items.append(item)
+        items = [item for item in items if item.buy_item.item_name == item_name]
+        return items
 
     def get_oldest_entry(self) -> ItemEntry:
         items = self.read_all_item_entries()
@@ -270,6 +285,7 @@ class DataHandler:
         item = self.get_oldest_entry()
         item.get_value_from_trade()
         self.write_item_entry(item)
+        self.update_profit_strats(item.item_name)
 
     def initialize_item_entries(
         self, item_names: list[str], modifiers_list: list[dict[str, Any]]
@@ -278,3 +294,11 @@ class DataHandler:
             for modifiers in modifiers_list:
                 item_entry = ItemEntry(item_name=item_name, modifiers=modifiers)
                 self.write_item_entry(item_entry)
+
+    def update_profit_strats(self, item_name: str) -> None:
+        item_entries = self.get_item_entries_by_name(item_name=item_name)
+        for buy in item_entries:
+            for sell in item_entries:
+                if sell.value > buy.value:
+                    profit_strat = ProfitStrat(item_name, buy_item=buy, sell_item=sell)
+                    self.write_profit_strat(profit_strat)

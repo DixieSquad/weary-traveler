@@ -268,6 +268,11 @@ class DataHandler:
                 oldest = item
         return oldest
 
+    def update_oldest_entry(self) -> None:
+        item = self.get_oldest_entry()
+        item.get_value_from_trade()
+        self.write_item_entry(item)
+
 
 def get_oldest_entry(group_name="awakened_gems.csv"):
     current_working_dir = os.getcwd()

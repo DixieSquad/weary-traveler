@@ -24,7 +24,6 @@ def prep_and_clean_data():
 @pytest.fixture
 def item_entry() -> ItemEntry:
     item_entry = ItemEntry(
-        id=1,
         item_name="test1",
         modifiers={"mod1": 1},
         url="test_url",

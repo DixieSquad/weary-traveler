@@ -35,49 +35,47 @@ def item_entry() -> ItemEntry:
     return item_entry
 
 
-@pytest.fixture
-def datahandler(prep_and_clean_data) -> DataHandler:
-    return DataHandler()
+class TestItemEntry:
+    def test_item_entry_equals(self, item_entry) -> None:
+        assert item_entry == item_entry
+
+    def test_item_entry_not_equals(self, item_entry) -> None:
+        item_entry2 = ItemEntry(**item_entry.__dict__)
+        item_entry2.item_name = "test2"
+        item_entry2.modifiers = {"mod1": 2}
+        print(item_entry)
+        assert item_entry != item_entry2
 
 
-def test_saving_and_loading_json(item_entry, datahandler) -> None:
-    item_entry = item_entry
-    datahandler.write_item_entry(item_entry=item_entry)
-    item_entries = datahandler.read_all_item_entries()
-    assert item_entry in item_entries
+class TestDataHandler:
+    @pytest.fixture
+    def datahandler(self, prep_and_clean_data) -> DataHandler:
+        return DataHandler()
 
+    def test_saving_and_loading_json(self, item_entry, datahandler) -> None:
+        item_entry = item_entry
+        datahandler.write_item_entry(item_entry=item_entry)
+        item_entries = datahandler.read_all_item_entries()
+        assert item_entry in item_entries
 
-def test_get_oldest_entry_last(item_entry, datahandler) -> None:
-    item_entry1 = ItemEntry(**item_entry.__dict__)
-    item_entry2 = ItemEntry(**item_entry.__dict__)
-    item_entry2.item_name = "test2"
-    item_entry2.updated_at = datetime.now() - timedelta(days=1)
-    datahandler.write_item_entry(item_entry1)
-    datahandler.write_item_entry(item_entry2)
+    def test_get_oldest_entry_last(self, item_entry, datahandler) -> None:
+        item_entry1 = ItemEntry(**item_entry.__dict__)
+        item_entry2 = ItemEntry(**item_entry.__dict__)
+        item_entry2.item_name = "test2"
+        item_entry2.updated_at = datetime.now() - timedelta(days=1)
+        datahandler.write_item_entry(item_entry1)
+        datahandler.write_item_entry(item_entry2)
 
-    item = datahandler.get_oldest_entry()
-    assert item == item_entry2 and item != item_entry1
+        item = datahandler.get_oldest_entry()
+        assert item == item_entry2 and item != item_entry1
 
+    def test_get_oldest_entry_first(self, item_entry, datahandler) -> None:
+        item_entry1 = ItemEntry(**item_entry.__dict__)
+        item_entry2 = ItemEntry(**item_entry.__dict__)
+        item_entry1.item_name = "test2"
+        item_entry1.updated_at = datetime.now() - timedelta(days=1)
+        datahandler.write_item_entry(item_entry1)
+        datahandler.write_item_entry(item_entry2)
 
-def test_get_oldest_entry_first(item_entry, datahandler) -> None:
-    item_entry1 = ItemEntry(**item_entry.__dict__)
-    item_entry2 = ItemEntry(**item_entry.__dict__)
-    item_entry1.item_name = "test2"
-    item_entry1.updated_at = datetime.now() - timedelta(days=1)
-    datahandler.write_item_entry(item_entry1)
-    datahandler.write_item_entry(item_entry2)
-
-    item = datahandler.get_oldest_entry()
-    assert item == item_entry1 and item != item_entry2
-
-
-def test_item_entry_equals(item_entry) -> None:
-    assert item_entry == item_entry
-
-
-def test_item_entry_not_equals(item_entry) -> None:
-    item_entry2 = ItemEntry(**item_entry.__dict__)
-    item_entry2.item_name = "test2"
-    item_entry2.modifiers = {"mod1": 2}
-    print(item_entry)
-    assert item_entry != item_entry2
+        item = datahandler.get_oldest_entry()
+        assert item == item_entry1 and item != item_entry2

@@ -217,7 +217,6 @@ class DataHandler:
         profit_strat = ProfitStrat(
             item_name=buy.item_name, buy_item=buy, sell_item=sell, id=0
         )
-        #
 
         # The rest is basically the same as write_item_entry
         with open(self.profit_strat_file, "r") as f:
@@ -260,6 +259,14 @@ class DataHandler:
 
     def read_profit_entry(self, item_name: str, modifiers: dict[str, Any]):
         pass
+
+    def get_oldest_entry(self) -> ItemEntry:
+        items = self.read_all_item_entries()
+        oldest = items.pop()
+        for item in items:
+            if item.updated_at < oldest.updated_at:
+                oldest = item
+        return oldest
 
 
 def get_oldest_entry(group_name="awakened_gems.csv"):

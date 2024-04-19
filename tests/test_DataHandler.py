@@ -35,10 +35,10 @@ def item_entry() -> ItemEntry:
 
 
 class TestItemEntry:
-    def test_item_entry_equals(self, item_entry) -> None:
+    def test_item_entry_equals(self, item_entry: ItemEntry) -> None:
         assert item_entry == item_entry
 
-    def test_item_entry_not_equals(self, item_entry) -> None:
+    def test_item_entry_not_equals(self, item_entry: ItemEntry) -> None:
         item_entry2 = ItemEntry(**item_entry.__dict__)
         item_entry2.item_name = "test2"
         item_entry2.modifiers = {"mod1": 2}
@@ -48,16 +48,20 @@ class TestItemEntry:
 
 class TestDataHandler:
     @pytest.fixture
-    def datahandler(self, prep_and_clean_data) -> DataHandler:
+    def datahandler(self, prep_and_clean_data: None) -> DataHandler:
         return DataHandler()
 
-    def test_saving_and_loading_json(self, item_entry, datahandler) -> None:
+    def test_saving_and_loading_json(
+        self, item_entry: ItemEntry, datahandler: DataHandler
+    ) -> None:
         item_entry = item_entry
         datahandler.write_item_entry(item_entry=item_entry)
         item_entries = datahandler.read_all_item_entries()
         assert item_entry in item_entries
 
-    def test_get_oldest_entry_last(self, item_entry, datahandler) -> None:
+    def test_get_oldest_entry_last(
+        self, item_entry: ItemEntry, datahandler: DataHandler
+    ) -> None:
         item_entry1 = ItemEntry(**item_entry.__dict__)
         item_entry2 = ItemEntry(**item_entry.__dict__)
         item_entry2.item_name = "test2"
@@ -68,7 +72,9 @@ class TestDataHandler:
         item = datahandler.get_oldest_entry()
         assert item == item_entry2 and item != item_entry1
 
-    def test_get_oldest_entry_first(self, item_entry, datahandler) -> None:
+    def test_get_oldest_entry_first(
+        self, item_entry: ItemEntry, datahandler: DataHandler
+    ) -> None:
         item_entry1 = ItemEntry(**item_entry.__dict__)
         item_entry2 = ItemEntry(**item_entry.__dict__)
         item_entry1.item_name = "test2"
@@ -78,3 +84,28 @@ class TestDataHandler:
 
         item = datahandler.get_oldest_entry()
         assert item == item_entry1 and item != item_entry2
+
+    def test_initialize_single_item_entry(
+        self, item_entry: ItemEntry, datahandler: DataHandler
+    ) -> None:
+        item_name = item_entry.item_name
+        modifiers = item_entry.modifiers
+        datahandler.initialize_item_entries(
+            item_names=[item_name], modifiers_list=[modifiers]
+        )
+        item_entries = datahandler.read_all_item_entries()
+        assert item_entry in item_entries
+
+    def test_initialize_multiple_item_entries(
+        self, item_entry: ItemEntry, datahandler: DataHandler
+    ) -> None:
+        item_entry1 = ItemEntry(**item_entry.__dict__)
+        item_entry2 = ItemEntry(**item_entry.__dict__)
+        item_entry2.item_name = "test2"
+        item_names = [item_entry1.item_name, item_entry2.item_name]
+        modifiers = [item_entry1.modifiers, item_entry2.modifiers]
+        datahandler.initialize_item_entries(
+            item_names=item_names, modifiers_list=modifiers
+        )
+        item_entries = datahandler.read_all_item_entries()
+        assert item_entry1 in item_entries and item_entry2 in item_entries

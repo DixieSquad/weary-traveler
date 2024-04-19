@@ -170,7 +170,9 @@ class ProfitStrat:
     item_name: str
     buy_item: ItemEntry
     sell_item: ItemEntry
-    profit: float = field(init=False) # init=false added otherwise it required initialization on line 201
+    profit: float = field(
+        init=False
+    )  # init=false added otherwise it required initialization on line 201
 
     def __post_init__(self):
         self.profit = self.sell_item.value - self.buy_item.value
@@ -204,39 +206,39 @@ class DataHandler:
         if not os.path.exists(self.profit_strat_file):
             with open(self.profit_strat_file, "w") as json_file:
                 json.dump({}, json_file)
-    
-    #TODO: Use write_profit_strat and figure out how we know which buy and which sell entry to take (based on last written item_entry, method on line 220).
-    def write_profit_strat(self, buy: ItemEntry, sell: ItemEntry): # Can also feed ProfitStrat, but creating it would require its own method (see line 200)
+
+    # TODO: Use write_profit_strat and figure out how we know which buy and which sell entry to take (based on last written item_entry, method on line 220).
+    def write_profit_strat(
+        self, buy: ItemEntry, sell: ItemEntry
+    ):  # Can also feed ProfitStrat, but creating it would require its own method (see line 200)
         strats = []
 
         # This can also be it's separate method, i.e., creating the ProfitStrat. But this works too, unless we need the profit strat class anywhere else
-        profit_strat = ProfitStrat(item_name= buy.item_name, buy_item=buy, sell_item=sell, id=0)
-        # 
-        
+        profit_strat = ProfitStrat(
+            item_name=buy.item_name, buy_item=buy, sell_item=sell, id=0
+        )
+        #
+
         # The rest is basically the same as write_item_entry
         with open(self.profit_strat_file, "r") as f:
             data = json.load(f)
             for s in data:
                 strat = ProfitStrat(**s)
                 strats.append(strat)
-        
-        #NOTE: We are only converting the json to a list of ProfitStrats to check if profit_strat is in strats. Whereafter we turn everything back into json. There might be a more elegant way of doing this. (I.e., keeping everything in json format. However, we would lose using the __eq__ functionality. So maybe leave it as is.) Same goes for write_item_entry.
+
+        # NOTE: We are only converting the json to a list of ProfitStrats to check if profit_strat is in strats. Whereafter we turn everything back into json. There might be a more elegant way of doing this. (I.e., keeping everything in json format. However, we would lose using the __eq__ functionality. So maybe leave it as is.) Same goes for write_item_entry.
         if profit_strat in strats:
             strats[strats.index(profit_strat)] = profit_strat
         else:
             strats.append(profit_strat)
 
         with open(self.profit_strat_file, "w") as f:
+            strats = [strat.__dict__ for strat in strats]
             json.dump(strats, f, default=str)
-    
-    #TODO: Use write_item_entry and figure out how we know which item_entry to write (based on oldest entry first)
+
+    # TODO: Use write_item_entry and figure out how we know which item_entry to write (based on oldest entry first)
     def write_item_entry(self, item_entry: ItemEntry):
-        items = []
-        with open(self.item_entry_file, "r") as f:
-            data = json.load(f)
-            for i in data:
-                item = ItemEntry(**i)
-                items.append(item)
+        items = self.read_all_item_entries()
 
         if item_entry in items:
             items[items.index(item_entry)] = item_entry
@@ -244,7 +246,17 @@ class DataHandler:
             items.append(item_entry)
 
         with open(self.item_entry_file, "w") as f:
+            items = [item.__dict__ for item in items]
             json.dump(items, f, default=str)
+
+    def read_all_item_entries(self) -> list[ItemEntry]:
+        items = []
+        with open(self.item_entry_file, "r") as f:
+            data = json.load(f)
+            for i in data:
+                item = ItemEntry(**i)
+                items.append(item)
+        return items
 
     def read_profit_entry(self, item_name: str, modifiers: dict[str, Any]):
         pass

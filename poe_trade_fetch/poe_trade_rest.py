@@ -272,18 +272,3 @@ class DataHandler:
         item = self.get_oldest_entry()
         item.get_value_from_trade()
         self.write_item_entry(item)
-
-
-def get_oldest_entry(group_name="awakened_gems.csv"):
-    current_working_dir = os.getcwd()
-    folder_path = os.path.join(current_working_dir, "data/profit")
-
-    file_path = os.path.join(folder_path, group_name)
-    if not os.path.exists(file_path):
-        return None
-
-    df = pd.read_csv(file_path).set_index("Item Name")
-
-    oldest_entry = df["Updated At"].idxmin()
-
-    return oldest_entry

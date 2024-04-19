@@ -121,13 +121,12 @@ class Fetcher:
 
 @dataclass
 class ItemEntry:
-    id: int
     item_name: str
     modifiers: dict[str, Any]
-    url: str
-    value: float
-    number_listed: int
-    updated_at: datetime
+    url: str = ""
+    value: float = 0
+    number_listed: int = 0
+    updated_at: datetime = datetime(1, 1, 1)
 
     def __eq__(self, other: object) -> bool:
         return (
@@ -166,7 +165,6 @@ class ItemEntry:
 
 @dataclass
 class ProfitStrat:
-    id: int
     item_name: str
     buy_item: ItemEntry
     sell_item: ItemEntry
@@ -215,7 +213,7 @@ class DataHandler:
 
         # This can also be it's separate method, i.e., creating the ProfitStrat. But this works too, unless we need the profit strat class anywhere else
         profit_strat = ProfitStrat(
-            item_name=buy.item_name, buy_item=buy, sell_item=sell, id=0
+            item_name=buy.item_name, buy_item=buy, sell_item=sell
         )
 
         # The rest is basically the same as write_item_entry
@@ -272,3 +270,11 @@ class DataHandler:
         item = self.get_oldest_entry()
         item.get_value_from_trade()
         self.write_item_entry(item)
+
+    def initialize_item_entries(
+        self, item_names: list[str], modifiers_list: list[dict[str, Any]]
+    ) -> None:
+        for item_name in item_names:
+            for modifiers in modifiers_list:
+                item_entry = ItemEntry(item_name=item_name, modifiers=modifiers)
+                self.write_item_entry(item_entry)

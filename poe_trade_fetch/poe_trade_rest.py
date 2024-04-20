@@ -162,7 +162,7 @@ class ItemEntry:
 
         price_mean = price_sum / len(fetcher.listings)
 
-        self.value = price_mean
+        self.value = round(price_mean, 1)
         self.updated_at = datetime.now()
 
 
@@ -179,7 +179,7 @@ class ProfitStrat:
         if isinstance(self.sell_item, dict):
             self.sell_item = ItemEntry(**self.sell_item)
 
-        self.profit = self.sell_item.value - self.buy_item.value
+        self.profit = round(self.sell_item.value - self.buy_item.value, 1)
 
     def __eq__(self, other: object) -> bool:
         return (

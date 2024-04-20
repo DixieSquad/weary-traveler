@@ -10,6 +10,8 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 
+from poe_trade_fetch import poe_ninja_scraper
+
 load_dotenv()
 
 
@@ -45,7 +47,7 @@ class Fetcher:
             }
         }
 
-        if "min_quality" in modifiers or "corrupt" in modifiers:
+        if "min_quality" in modifiers or "corrupted" in modifiers:
             filters["filters"]["misc_filters"] = {"filters": {}}
 
             if "min_quality" in modifiers:
@@ -299,6 +301,23 @@ class DataHandler:
         item_entries = self.get_item_entries_by_name(item_name=item_name)
         for buy in item_entries:
             for sell in item_entries:
-                if sell.value > buy.value:
+                if sell.value >= buy.value and sell.modifiers != buy.modifiers:
                     profit_strat = ProfitStrat(item_name, buy_item=buy, sell_item=sell)
                     self.write_profit_strat(profit_strat)
+
+    def initialize_from_ninja(self, group: str) -> None:
+        if group == "Awakened Gems":
+            poe_ninja_url = "https://poe.ninja/economy/affliction/skill-gems?level=5&quality=20&corrupted=No&gemType=Awakened"
+            modifiers = [
+                {"max_gem_level": 1, "corrupted": "false"},
+                {"min_gem_level": 5, "corrupted": "false", "min_quality": 20},
+            ]
+        else:
+            NotImplementedError(f"This group: '{group}' is not implemented yet")
+
+        item_names = poe_ninja_scraper.fetch_data(poe_ninja_url)
+
+        self.initialize_item_entries(item_names=item_names, modifiers_list=modifiers)
+
+        for item_name in item_names:
+            self.update_profit_strats(item_name)

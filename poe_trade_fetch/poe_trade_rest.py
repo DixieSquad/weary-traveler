@@ -36,7 +36,7 @@ class Fetcher:
         self.modifiers = modifiers
         self.query = Fetcher.build_query(item_name, modifiers)
         self.listings = []
-        self.number_listed = None
+        self.number_listed = 0
 
     @staticmethod
     def build_query(item_name, modifiers):
@@ -95,9 +95,10 @@ class Fetcher:
             seconds_since_last_query = (datetime.now() - self._last_query_time).seconds
 
         try:
+            Fetcher._last_query_time = datetime.now()
             r = requests.post(self._trade_url, headers=self._header, json=self.query)
             r.raise_for_status()
-            self.number_listed = r.json().get("total", 0)
+            self.number_listed: int = r.json().get("total", 0)
             result = r.json().get("result", [])[:10]
             result_id = r.json().get("id", "")
             text_result = ",".join(result)
@@ -129,7 +130,7 @@ class ItemEntry:
     url: str = ""
     value: float = 0
     number_listed: int = 0
-    updated_at: datetime = datetime(1, 1, 1)
+    updated_at: datetime = datetime(1, 1, 1, 0, 0, 0, 1)
 
     def __eq__(self, other: object) -> bool:
         return (
@@ -162,8 +163,9 @@ class ItemEntry:
 
         price_mean = price_sum / len(fetcher.listings)
 
-        self.value = price_mean
+        self.value = round(price_mean, 1)
         self.updated_at = datetime.now()
+        self.number_listed = fetcher.number_listed
 
 
 @dataclass
@@ -179,7 +181,10 @@ class ProfitStrat:
         if isinstance(self.sell_item, dict):
             self.sell_item = ItemEntry(**self.sell_item)
 
-        self.profit = self.sell_item.value - self.buy_item.value
+        if self.sell_item.value > 0 and self.buy_item.value > 0:
+            self.profit = round(self.sell_item.value - self.buy_item.value, 1)
+        else:
+            self.profit = 0
 
     def __eq__(self, other: object) -> bool:
         return (

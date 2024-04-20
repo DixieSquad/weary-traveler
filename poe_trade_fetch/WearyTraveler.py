@@ -45,6 +45,15 @@ class DataFrameApp:
         style.configure("TLabel", padding=20)
         style.configure("Treeview", rowheight=60)
 
+        # Create menu bar
+        self.menu = tk.Menu(root)
+        self.root.configure(menu=self.menu)
+        file_menu = tk.Menu(self.menu, tearoff=0)
+        file_menu.add_command(label="Initialize Library", command=self.initialize_data)
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=root.quit)
+        self.menu.add_cascade(label="File", menu=file_menu)
+
         # Create top frame
         self.top_frame = ttk.Frame(self.root)
         self.top_frame.pack(side="top", fill="both", expand=False)
@@ -165,6 +174,10 @@ class DataFrameApp:
         folder_path = os.path.join(os.getcwd(), "data/profit_strats")
         files = [file for file in os.listdir(folder_path) if file.endswith(".json")]
         self.dropdown["values"] = files
+
+    def initialize_data(self) -> None:
+        self.datahandler.initialize_from_ninja("Awakened Gems")
+        self.load_data()
 
     def load_data(self) -> None:
         self.data = self.datahandler.read_all_profit_strats()

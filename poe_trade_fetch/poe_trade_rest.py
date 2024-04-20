@@ -1,12 +1,16 @@
+import dataclasses
+import json
 import os
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, List
+from typing import Any
 
 import pandas as pd
 import requests
 from dotenv import load_dotenv
+
+from poe_trade_fetch import poe_ninja_scraper
 
 load_dotenv()
 
@@ -43,7 +47,7 @@ class Fetcher:
             }
         }
 
-        if "min_quality" in modifiers or "corrupt" in modifiers:
+        if "min_quality" in modifiers or "corrupted" in modifiers:
             filters["filters"]["misc_filters"] = {"filters": {}}
 
             if "min_quality" in modifiers:
@@ -107,7 +111,7 @@ class Fetcher:
             print("Error: ", e)
 
     @staticmethod
-    def extract_listings(response: requests.Response) -> List[Listing]:
+    def extract_listings(response: requests.Response) -> list[Listing]:
         results = response.json().get("result", [])
         listings = []
         for result in results:
@@ -120,13 +124,19 @@ class Fetcher:
 
 @dataclass
 class ItemEntry:
-    id: int
     item_name: str
     modifiers: dict[str, Any]
-    url: str
-    value: float
-    number_listed: int
-    updated_at: datetime
+    url: str = ""
+    value: float = 0
+    number_listed: int = 0
+    updated_at: datetime = datetime(1, 1, 1)
+
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, ItemEntry)
+            and self.item_name == other.item_name
+            and self.modifiers == other.modifiers
+        )
 
     def mods_to_str(self) -> str:
         mod_str = ""
@@ -158,95 +168,160 @@ class ItemEntry:
 
 @dataclass
 class ProfitStrat:
-    id: int
     item_name: str
     buy_item: ItemEntry
     sell_item: ItemEntry
-    profit: float
+    profit: float = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
+        if isinstance(self.buy_item, dict):
+            self.buy_item = ItemEntry(**self.buy_item)
+        if isinstance(self.sell_item, dict):
+            self.sell_item = ItemEntry(**self.sell_item)
+
         self.profit = self.sell_item.value - self.buy_item.value
 
-
-def update_all_listings(listing_item, buy_properties, sell_properties):
-    for name in listing_item:
-        buy_payload = Payload(
-            payload_type=buy_properties["payload_type"],
-            item_type=name,
-            status=buy_properties["status"],
-            league=buy_properties["league"],
-            min_quality=buy_properties["min_quality"],
-            sort_by=buy_properties["sort_by"],
-            corrupt=buy_properties["corrupt"],
-            max_gem_level=buy_properties["max_gem_level"],
-            sort_order=buy_properties["sort_order"],
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, ProfitStrat)
+            and self.buy_item == other.buy_item
+            and self.sell_item == other.sell_item
         )
-        sell_payload = Payload(
-            payload_type=sell_properties["payload_type"],
-            item_type=name,
-            status=sell_properties["status"],
-            league=sell_properties["league"],
-            min_quality=sell_properties["min_quality"],
-            sort_by=sell_properties["sort_by"],
-            corrupt=sell_properties["corrupt"],
-            min_gem_level=sell_properties["min_gem_level"],
-            sort_order=sell_properties["sort_order"],
-        )
-        buy_fetcher = ListingFetcher(buy_payload)
-        sell_fetcher = ListingFetcher(sell_payload)
-
-        buy_data = buy_fetcher.fetch_listing()
-        sell_data = sell_fetcher.fetch_listing()
-
-        buy_sell_entry = BuySellEntry(name, buy_data, sell_data)
-        buy_sell_entry.update_csv()  # Save profit frame for UI
-        # buy_fetcher.save_data()  # Save buy data for potential history
-        # sell_fetcher.save_data()  # Save sell data for potential history
 
 
-def get_oldest_entry(group_name="awakened_gems.csv"):
-    current_working_dir = os.getcwd()
-    folder_path = os.path.join(current_working_dir, "data/profit")
-
-    file_path = os.path.join(folder_path, group_name)
-    if not os.path.exists(file_path):
-        return None
-
-    df = pd.read_csv(file_path).set_index("Item Name")
-
-    oldest_entry = df["Updated At"].idxmin()
-
-    return oldest_entry
+class EnhancedJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if dataclasses.is_dataclass(o):
+            return dataclasses.asdict(o)
+        return super().default(o)
 
 
-def get_gem_buy_sell_properties():
-    buy_properties = {
-        "payload_type": "buy",
-        "status": "online",
-        "league": "Necropolis",
-        "min_quality": None,
-        "sort_by": "price",
-        "corrupt": "false",
-        "max_gem_level": 1,
-        "sort_order": "asc",
-    }
-    sell_properties = {
-        "payload_type": "sell",
-        "status": "online",
-        "league": "Necropolis",
-        "min_quality": 20,
-        "sort_by": "price",
-        "corrupt": "false",
-        "min_gem_level": 5,
-        "sort_order": "asc",
-    }
+class DataHandler:
+    def __init__(self) -> None:
+        current_working_dir = os.getcwd()
+        item_folder_path = os.path.join(current_working_dir, "data/item_entries")
+        self.item_entry_file = os.path.join(item_folder_path, "awakened_gems.json")
 
-    return {"buy": buy_properties, "sell": sell_properties}
+        profit_folder_path = os.path.join(current_working_dir, "data/profit_strats")
+        self.profit_strat_file = os.path.join(profit_folder_path, "awakened_gems.json")
 
+        # ensure the directory exists, no error is raised if it does.
+        os.makedirs(item_folder_path, exist_ok=True)
+        os.makedirs(profit_folder_path, exist_ok=True)
 
-def update_oldest_entry():
-    update_all_listings(
-        [get_oldest_entry()],
-        get_gem_buy_sell_properties()["buy"],
-        get_gem_buy_sell_properties()["sell"],
-    )
+        # check if item entry file exists
+        if not os.path.exists(self.item_entry_file):
+            with open(self.item_entry_file, "w") as json_file:
+                json.dump({}, json_file)
+        # check if profit strat file exists
+        if not os.path.exists(self.profit_strat_file):
+            with open(self.profit_strat_file, "w") as json_file:
+                json.dump({}, json_file)
+
+    # TODO: Use write_profit_strat and figure out how we know which buy and which sell entry to take (based on last written item_entry, method on line 220).
+    def write_profit_strat(self, profit_strat: ProfitStrat) -> None:
+        strats = []
+        # The rest is basically the same as write_item_entry
+        with open(self.profit_strat_file, "r") as f:
+            data = json.load(f)
+            for s in data:
+                strat = ProfitStrat(**s)
+                strats.append(strat)
+
+        # NOTE: We are only converting the json to a list of ProfitStrats to check if profit_strat is in strats. Whereafter we turn everything back into json. There might be a more elegant way of doing this. (I.e., keeping everything in json format. However, we would lose using the __eq__ functionality. So maybe leave it as is.) Same goes for write_item_entry.
+        if profit_strat in strats:
+            strats[strats.index(profit_strat)] = profit_strat
+        else:
+            strats.append(profit_strat)
+
+        with open(self.profit_strat_file, "w") as f:
+            strats = [strat.__dict__ for strat in strats]
+            json.dump(strats, f, cls=EnhancedJSONEncoder)
+
+    # TODO: Use write_item_entry and figure out how we know which item_entry to write (based on oldest entry first)
+    def write_item_entry(self, item_entry: ItemEntry) -> None:
+        items = self.read_all_item_entries()
+
+        if item_entry in items:
+            items[items.index(item_entry)] = item_entry
+        else:
+            items.append(item_entry)
+
+        with open(self.item_entry_file, "w") as f:
+            items = [item.__dict__ for item in items]
+            json.dump(items, f, default=str)
+
+    def read_all_item_entries(self) -> list[ItemEntry]:
+        items = []
+        with open(self.item_entry_file, "r") as f:
+            data = json.load(f)
+            for i in data:
+                item = ItemEntry(**i)
+                items.append(item)
+        return items
+
+    def get_item_entries_by_item_name(self, item_name: str) -> list[ItemEntry]:
+        items = self.read_all_item_entries()
+        items = [item for item in items if item.item_name == item_name]
+        return items
+
+    def read_all_profit_strats(self) -> list[ProfitStrat]:
+        strats: list[ProfitStrat] = []
+        with open(self.profit_strat_file, "r") as f:
+            data = json.load(f)
+            for i in data:
+                strat = ProfitStrat(**i)
+                strats.append(strat)
+        return strats
+
+    def get_profit_strats_by_item_name(self, item_name: str) -> list[ProfitStrat]:
+        strats = self.read_all_profit_strats()
+        strats = [strat for strat in strats if strat.buy_item.item_name == item_name]
+        return strats
+
+    def get_oldest_item_entry(self) -> ItemEntry:
+        items = self.read_all_item_entries()
+        oldest = items.pop()
+        for item in items:
+            if item.updated_at < oldest.updated_at:
+                oldest = item
+        return oldest
+
+    def update_oldest_item_entry(self) -> None:
+        item = self.get_oldest_item_entry()
+        item.get_value_from_trade()
+        self.write_item_entry(item)
+        self.update_profit_strats(item.item_name)
+
+    def initialize_item_entries(
+        self, item_names: list[str], modifiers_list: list[dict[str, Any]]
+    ) -> None:
+        for item_name in item_names:
+            for modifiers in modifiers_list:
+                item_entry = ItemEntry(item_name=item_name, modifiers=modifiers)
+                self.write_item_entry(item_entry)
+
+    def update_profit_strats(self, item_name: str) -> None:
+        item_entries = self.get_item_entries_by_item_name(item_name=item_name)
+        for buy in item_entries:
+            for sell in item_entries:
+                if sell.value >= buy.value and sell.modifiers != buy.modifiers:
+                    profit_strat = ProfitStrat(item_name, buy_item=buy, sell_item=sell)
+                    self.write_profit_strat(profit_strat)
+
+    def initialize_from_ninja(self, group: str) -> None:
+        if group == "Awakened Gems":
+            poe_ninja_url = "https://poe.ninja/economy/affliction/skill-gems?level=5&quality=20&corrupted=No&gemType=Awakened"
+            modifiers = [
+                {"max_gem_level": 1, "corrupted": "false"},
+                {"min_gem_level": 5, "corrupted": "false", "min_quality": 20},
+            ]
+        else:
+            NotImplementedError(f"This group: '{group}' is not implemented yet")
+
+        item_names = poe_ninja_scraper.fetch_data(poe_ninja_url)
+
+        self.initialize_item_entries(item_names=item_names, modifiers_list=modifiers)
+
+        for item_name in item_names:
+            self.update_profit_strats(item_name)

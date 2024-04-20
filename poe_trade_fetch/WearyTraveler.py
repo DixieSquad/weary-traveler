@@ -7,7 +7,7 @@ from tkinter import ttk
 from tkinter import messagebox
 
 import pandas as pd
-import poe_trade_rest
+from poe_trade_rest import DataHandler
 from ttkthemes import ThemedTk
 
 
@@ -15,6 +15,7 @@ class BackgroundTask(threading.Thread):
     def __init__(self) -> None:
         super().__init__()
         self._stop_event = threading.Event()
+        self.datahandler = DataHandler()
 
     def stop(self) -> None:
         self._stop_event.set()
@@ -22,7 +23,7 @@ class BackgroundTask(threading.Thread):
     def run(self) -> None:
         while not self._stop_event.is_set():
             print("Background Task is running...")
-            poe_trade_rest.update_oldest_entry()
+            self.datahandler.update_oldest_item_entry()
 
 
 class DataFrameApp:

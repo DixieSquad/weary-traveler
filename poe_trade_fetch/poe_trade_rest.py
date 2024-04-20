@@ -266,18 +266,18 @@ class DataHandler:
         return items
 
     def read_all_profit_strats(self) -> list[ProfitStrat]:
-        items: list[ProfitStrat] = []
+        strats: list[ProfitStrat] = []
         with open(self.profit_strat_file, "r") as f:
             data = json.load(f)
             for i in data:
-                item = ProfitStrat(**i)
-                items.append(item)
-        return items
+                strat = ProfitStrat(**i)
+                strats.append(strat)
+        return strats
 
     def get_profit_strats_by_item_name(self, item_name: str) -> list[ProfitStrat]:
-        items = self.read_all_profit_strats()
-        items = [item for item in items if item.buy_item.item_name == item_name]
-        return items
+        strats = self.read_all_profit_strats()
+        strats = [strat for strat in strats if strat.buy_item.item_name == item_name]
+        return strats
 
     def get_oldest_item_entry(self) -> ItemEntry:
         items = self.read_all_item_entries()

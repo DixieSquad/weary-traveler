@@ -95,6 +95,7 @@ class Fetcher:
             seconds_since_last_query = (datetime.now() - self._last_query_time).seconds
 
         try:
+            Fetcher._last_query_time = datetime.now()
             r = requests.post(self._trade_url, headers=self._header, json=self.query)
             r.raise_for_status()
             self.number_listed: int = r.json().get("total", 0)

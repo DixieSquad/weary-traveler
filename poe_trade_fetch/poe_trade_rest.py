@@ -36,7 +36,7 @@ class Fetcher:
         self.modifiers = modifiers
         self.query = Fetcher.build_query(item_name, modifiers)
         self.listings = []
-        self.number_listed = None
+        self.number_listed = 0
 
     @staticmethod
     def build_query(item_name, modifiers):
@@ -97,7 +97,7 @@ class Fetcher:
         try:
             r = requests.post(self._trade_url, headers=self._header, json=self.query)
             r.raise_for_status()
-            self.number_listed = r.json().get("total", 0)
+            self.number_listed: int = r.json().get("total", 0)
             result = r.json().get("result", [])[:10]
             result_id = r.json().get("id", "")
             text_result = ",".join(result)
@@ -164,6 +164,7 @@ class ItemEntry:
 
         self.value = round(price_mean, 1)
         self.updated_at = datetime.now()
+        self.number_listed = fetcher.number_listed
 
 
 @dataclass

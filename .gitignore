@@ -1,8 +1,11 @@
 poe_trade_fetch/data/trade/*
 poe_trade_fetch/data/ninja/*
 poe_trade_fetch/data/profit/*
+poe_trade_fetch/data/item_entries/*
+poe_trade_fetch/data/profit_strats/*
 poe_trade_fetch/__pycache__
 poe_trade_fetch/.ipynb_checkpoints
 poe_trade_fetch/poe_ninja_data.csv
 poe_trade_fetch/.env
+tests/__pycache__
 .vscode/

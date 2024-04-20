@@ -157,12 +157,12 @@ class converter subgraphstyle
 |Ruby Flask         |{ilvl:84,<br>Prefix: 25% Increase Effect,<br>Suffix: 5% life regen,<br>Quality: 0,<br>Enchant: None}|0.8 |9      |2024-03-03 22:05:46|
 |...                |...                                              |...  |...     |... |
 
-'BuySellEntries' database example for the 'Gems' profit method group:
+'BuySellEntries' database example:
 
-|Item Name|Buy mods|Buy price|Sell mods|Sell price|Profit|Last updated|
-|--|--|--|--|--|--|--|
-|Awakened Spell Echo|lvl:0, Q:0%, Corrupt:No|12.3|lvl:5, Q:20%, Corrupt:No|23.4|11.1|2024-03-03 22:05:46|
-|...|...|...|...|...|...|...|
+|Item Name|Buy ItemEntry|Sell ItemEntry|Profit|
+|--|--|--|--|
+|Awakened Spell Echo|ItemEntry(...)|ItemEntry(...)|12.3|
+|...|...|...|...|
 
 
 ## Detailed Design
@@ -199,7 +199,7 @@ The scraper will fetch the following data: Name, Level, Quality, Corrupt, Value,
 ```mermaid
 classDiagram
 class poe_ninja_scraper{
-    +fetch_data(url)
+    +fetch_data(url) list[item_names: str]
     +save_data(data)
 }
 ```
@@ -401,80 +401,27 @@ The time of last update is stored as text with the following format: 2024-03-20 
 
 ## v0.2.0
 
-### Class diagram overview (only critical dependencies shown)
+### Class diagram overview
 
 ```mermaid
 classDiagram
 
-class poe_trade_rest{
-    + update_oldest_entry(group: str) None
-}
-
-class Database{
-    + update(group: str, entry: ItemEntry) None
-    + construct_ProfitMethod(buy_item: ItemEntry, sell_item: ItemEntry) ProfitStrat
+class DataHandler{
+    + write_item_entry(item_entry: ItemEntry) None
+    + write_profit_strat(profit_strat: ProfitStrat) None
+    + read_all_item_entries() list[ItemEntry]
+    + get_item_entries_by_item_name(item_name: str) list[ItemEntry]
+    + read_all_profit_strats() list[ProfitStrat]
+    + get_profit_strats_by_item_name(item_name: str) list[ProfitStrat]
+    + get_oldest_item_entry() ItemEntry
+    + update_oldest_item_entry() None
+    + initialize_item_entries(item_names: list[ItemEntry], modifiers_list: list[dict[str, Any]])
+    + update_profit_strats(item_name: str) None
     + initialize_from_ninja(group: str) None
 }
 
 class ItemEntry{
-    + get_value_from_trade() None
-}
-
-class Fetcher{
-    - extract_listing(response_listing: json) Listing
-}
-
-poe_trade_rest --|> Database: Dependency
-Database --|> ItemEntry: Dependency
-Database --|> ProfitStrat: Dependency
-Database --|> poe_ninja_scraper: Dependency
-ItemEntry --|> Fetcher: Dependency
-Fetcher --|> Listing: Dependency
-
-```
-
-### Class diagram for poe_trade_rest
-
-```mermaid
-classDiagram
-class poe_trade_rest{
-    + update_oldest_entry(group: str) None
-}
-```
-### Class diagram for the Database class
-
-```mermaid
-classDiagram
-class Database{
-    <<Singleton>>
-    - instance: Database$
-    - Database()
-    + getInstance() Database$
-    - get_oldest_item_entry(group: str) ItemEntry
-    + initialize_from_ninja(group: str) None
-    + construct_ProfitStratCSV(group: str) None
-    + construct_ProfitStrat(buy_item: ItemEntry, sell_item: ItemEntry) ProfitStrat
-    + update(group: str, entry: ItemEntry) None
-}
-```
-
-### Class diagram for dataclasses
-
-```mermaid
-classDiagram
-class ProfitStrat{
     <<dataclass>>
-    + id: int
-    + item_name: str
-    + buy_item: ItemEntry
-    + sell_item: ItemEntry
-    + profit: float
-    + to_str() str
-}
-
-class ItemEntry{
-    <<dataclass>>
-    + id: int
     + item_name: str
     + modifiers: dict[str, Any]
     + url: str
@@ -485,31 +432,94 @@ class ItemEntry{
     + mods_to_str() str
 }
 
+class ProfitStrat{
+    <<dataclass>>
+    + item_name: str
+    + buy_item: ItemEntry
+    + sell_item: ItemEntry
+    + profit: float
+}
+
+class Fetcher{
+    - trade_url: str
+    - header: dict[str, str]
+    - last_query_time: datetime
+    - extract_listings(response: requests.respose) list[Listing]
+    - build_query(item_name: str, modifiers: dict[str, Any]) query: dict[str, Any]
+    + fetch() None
+}
+
 class Listing{
     <<dataclass>>
     + price: float
     + currency: str
-    + chaos_to_divine() None
 }
+
+DataHandler --|> poe_ninja_scraper: Dependency
+DataHandler --|> ItemEntry: Dependency
+DataHandler --|> ProfitStrat: Dependency
+ProfitStrat --|> ItemEntry: Dependency
+ItemEntry --|> Fetcher: Dependency
+Fetcher --|> Listing: Dependency
+
 ```
 
-### Class diagram for functional classes
+
+### Sequence to update the oldest entry (v0.2.0)
 
 ```mermaid
-classDiagram
-class Fetcher{
-    - trade_url: str$
-    - header: dict$
-    - last_query_time: datetime$
-    + listings: list[Listing]
-    + url: str
-    + nr_listed: int
-    + Fetcher(item_name: str, modifiers: dict[str, Any])
-    + fetch() list[Listing]
-    - extract_listing(listing: json) Listing
-    - build_query(item_name: str, modifiers: dict[str, Any]) json
-}
+sequenceDiagram
+
+box rgb(80,80,80) UI
+participant WearyTraveler
+end
+
+box rgb(80,80,80) DataHandler
+participant update_oldest_item_entry
+participant get_oldest_item_entry
+participant write_item_entry
+participant update_profit_strats
+end
+
+box rgb(80,80,80) ItemEntry
+participant get_value_from_trade
+end
+
+box rgb(80,80,80) Fetcher
+participant fetch_init as init
+participant build_query
+participant fetch
+participant extract_listings
+end
+
+WearyTraveler ->> update_oldest_item_entry: 
+update_oldest_item_entry ->> get_oldest_item_entry: 
+get_oldest_item_entry ->> update_oldest_item_entry: ItemEntry
+
+update_oldest_item_entry ->> get_value_from_trade: (self)
+
+get_value_from_trade ->> fetch_init: item_name, modifiers
+fetch_init ->> build_query: item_name, modifiers
+build_query ->> fetch_init: query
+fetch_init ->> get_value_from_trade: fetcher
+
+get_value_from_trade ->> fetch: 
+fetch ->> fetch: poe.trade
+fetch ->> extract_listings: 
+extract_listings ->> fetch: listings
+fetch ->> get_value_from_trade: 
+get_value_from_trade ->> get_value_from_trade: update value
+get_value_from_trade ->> get_value_from_trade: update timestamp
+
+get_value_from_trade ->> update_oldest_item_entry: 
+
+update_oldest_item_entry ->> write_item_entry: ItemEntry
+write_item_entry ->> write_item_entry: write item to db
+update_oldest_item_entry ->> update_profit_strats: item_name
+update_profit_strats ->> update_profit_strats: write impacted strats to db
+
 ```
+
 
 ## Future (v0.3.0+)
 

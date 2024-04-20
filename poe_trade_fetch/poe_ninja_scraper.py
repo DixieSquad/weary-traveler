@@ -1,5 +1,4 @@
 import os
-import traceback
 
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -9,10 +8,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
-url = "https://poe.ninja/economy/skill-gems"
 
-
-def fetch_data(url):
+def fetch_data(url: str) -> list[str]:
     options = webdriver.ChromeOptions()
     options.add_argument("headless")
     driver = webdriver.Chrome(options=options)
@@ -59,8 +56,10 @@ def fetch_data(url):
 
     save_data(data)
 
+    return data["Name"].tolist()
 
-def save_data(data):
+
+def save_data(data: pd.DataFrame) -> None:
     current_working_dir = os.getcwd()
     folder_path = os.path.join(current_working_dir, "data/ninja")
     if not os.path.exists(folder_path):

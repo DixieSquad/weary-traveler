@@ -96,19 +96,19 @@ class DataFrameApp:
             "Last updated",
         )
         widths = (
-            300,
-            300,
-            80,
-            80,
-            80,
-            300,
+            150,
+            150,
+            100,
+            100,
+            100,
+            200,
         )
         self.tree_view["columns"] = columns
         self.tree_view.heading("#0", text="Item name", anchor="w")
-        self.tree_view.column("#0", width=500)
+        self.tree_view.column("#0", width=400)
         for column, width in zip(columns, widths):
-            self.tree_view.heading(column=column, text=column, anchor="e")
-            self.tree_view.column(column=column, width=width)
+            self.tree_view.heading(column=column, text=column, anchor="center")
+            self.tree_view.column(column=column, width=width, anchor="center")
 
     def auto_refresh(self) -> None:
         if self.background_task and self.background_task.is_alive():
@@ -177,13 +177,15 @@ class DataFrameApp:
 
         # Add data
         for profit_strat in self.data:
+            buy_item = profit_strat.buy_item
+            sell_item = profit_strat.sell_item
             values = (
-                profit_strat.buy_item.mods_to_str(),
-                profit_strat.sell_item.mods_to_str(),
-                profit_strat.buy_item.value,
-                profit_strat.sell_item.value,
+                buy_item.mods_to_str(),
+                sell_item.mods_to_str(),
+                buy_item.value if buy_item.number_listed > 0 else "",
+                sell_item.value if sell_item.number_listed > 0 else "",
                 profit_strat.profit,
-                profit_strat.sell_item.updated_at,
+                sell_item.updated_at,
             )
             self.tree_view.insert(
                 "", tk.END, text=profit_strat.item_name, values=values

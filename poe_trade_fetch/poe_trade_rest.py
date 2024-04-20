@@ -239,7 +239,7 @@ class DataHandler:
             json.dump(strats, f, cls=EnhancedJSONEncoder)
 
     # TODO: Use write_item_entry and figure out how we know which item_entry to write (based on oldest entry first)
-    def write_item_entry(self, item_entry: ItemEntry):
+    def write_item_entry(self, item_entry: ItemEntry) -> None:
         items = self.read_all_item_entries()
 
         if item_entry in items:
@@ -260,22 +260,26 @@ class DataHandler:
                 items.append(item)
         return items
 
-    def get_item_entries_by_name(self, item_name: str) -> list[ItemEntry]:
+    def get_item_entries_by_item_name(self, item_name: str) -> list[ItemEntry]:
         items = self.read_all_item_entries()
         items = [item for item in items if item.item_name == item_name]
         return items
 
-    def read_profit_strats(self, item_name: str) -> list[ProfitStrat]:
+    def read_all_profit_strats(self) -> list[ProfitStrat]:
         items: list[ProfitStrat] = []
         with open(self.profit_strat_file, "r") as f:
             data = json.load(f)
             for i in data:
                 item = ProfitStrat(**i)
                 items.append(item)
+        return items
+
+    def get_profit_strats_by_item_name(self, item_name: str) -> list[ProfitStrat]:
+        items = self.read_all_profit_strats()
         items = [item for item in items if item.buy_item.item_name == item_name]
         return items
 
-    def get_oldest_entry(self) -> ItemEntry:
+    def get_oldest_item_entry(self) -> ItemEntry:
         items = self.read_all_item_entries()
         oldest = items.pop()
         for item in items:
@@ -283,8 +287,8 @@ class DataHandler:
                 oldest = item
         return oldest
 
-    def update_oldest_entry(self) -> None:
-        item = self.get_oldest_entry()
+    def update_oldest_item_entry(self) -> None:
+        item = self.get_oldest_item_entry()
         item.get_value_from_trade()
         self.write_item_entry(item)
         self.update_profit_strats(item.item_name)
@@ -298,7 +302,7 @@ class DataHandler:
                 self.write_item_entry(item_entry)
 
     def update_profit_strats(self, item_name: str) -> None:
-        item_entries = self.get_item_entries_by_name(item_name=item_name)
+        item_entries = self.get_item_entries_by_item_name(item_name=item_name)
         for buy in item_entries:
             for sell in item_entries:
                 if sell.value >= buy.value and sell.modifiers != buy.modifiers:

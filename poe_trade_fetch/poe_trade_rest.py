@@ -181,7 +181,10 @@ class ProfitStrat:
         if isinstance(self.sell_item, dict):
             self.sell_item = ItemEntry(**self.sell_item)
 
-        self.profit = round(self.sell_item.value - self.buy_item.value, 1)
+        if self.sell_item.value > 0 and self.buy_item.value > 0:
+            self.profit = round(self.sell_item.value - self.buy_item.value, 1)
+        else:
+            self.profit = 0
 
     def __eq__(self, other: object) -> bool:
         return (

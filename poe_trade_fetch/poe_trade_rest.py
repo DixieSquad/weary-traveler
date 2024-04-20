@@ -130,7 +130,7 @@ class ItemEntry:
     url: str = ""
     value: float = 0
     number_listed: int = 0
-    updated_at: datetime = datetime(1, 1, 1)
+    updated_at: datetime = datetime(1, 1, 1, 0, 0, 0, 1)
 
     def __eq__(self, other: object) -> bool:
         return (

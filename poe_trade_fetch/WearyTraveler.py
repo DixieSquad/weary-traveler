@@ -1,6 +1,5 @@
 import os
 import threading
-import time
 import tkinter as tk
 from datetime import datetime
 from tkinter import ttk

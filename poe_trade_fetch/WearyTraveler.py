@@ -168,6 +168,7 @@ class DataFrameApp:
 
     def load_data(self) -> None:
         self.data = self.datahandler.read_all_profit_strats()
+        self.sort_data()
         self.display_data_in_treeview()
 
     def display_data_in_treeview(self) -> None:
@@ -190,6 +191,9 @@ class DataFrameApp:
             self.tree_view.insert(
                 "", tk.END, text=profit_strat.item_name, values=values
             )
+
+    def sort_data(self) -> None:
+        self.data = sorted(self.data, key=lambda x: x.profit, reverse=True)
 
     def on_close(self) -> None:
         if self.background_task and self.background_task.is_alive():

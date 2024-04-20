@@ -1,13 +1,12 @@
 import os
 import threading
-import time
 import tkinter as tk
 from datetime import datetime
 from tkinter import ttk
 from tkinter import messagebox
 
 import pandas as pd
-import poe_trade_rest
+from poe_trade_rest import DataHandler, ProfitStrat, ItemEntry
 from ttkthemes import ThemedTk
 
 
@@ -15,6 +14,7 @@ class BackgroundTask(threading.Thread):
     def __init__(self) -> None:
         super().__init__()
         self._stop_event = threading.Event()
+        self.datahandler = DataHandler()
 
     def stop(self) -> None:
         self._stop_event.set()
@@ -22,7 +22,7 @@ class BackgroundTask(threading.Thread):
     def run(self) -> None:
         while not self._stop_event.is_set():
             print("Background Task is running...")
-            poe_trade_rest.update_oldest_entry()
+            self.datahandler.update_oldest_item_entry()
 
 
 class DataFrameApp:
@@ -33,7 +33,8 @@ class DataFrameApp:
         root.minsize(800, 800)
 
         self.selected_file = tk.StringVar()
-        self.dataframe = pd.DataFrame()
+        self.datahandler = DataHandler()
+        self.data: list[ProfitStrat] = []
 
         # Background progress stuff
         self.background_task = None
@@ -42,15 +43,25 @@ class DataFrameApp:
         style = ttk.Style()
         style.configure(".", font="20", rowheight=30)
         style.configure("TLabel", padding=20)
+        style.configure("Treeview", rowheight=60)
+
+        # Create menu bar
+        self.menu = tk.Menu(root)
+        self.root.configure(menu=self.menu)
+        file_menu = tk.Menu(self.menu, tearoff=0)
+        file_menu.add_command(label="Initialize Library", command=self.initialize_data)
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=root.quit)
+        self.menu.add_cascade(label="File", menu=file_menu)
 
         # Create top frame
         self.top_frame = ttk.Frame(self.root)
         self.top_frame.pack(side="top", fill="both", expand=False)
 
         # Create widgets
-        self.label1 = ttk.Label(self.top_frame, text="Select CSV file:")
+        self.label1 = ttk.Label(self.top_frame, text="Select file:")
         self.dropdown = ttk.Combobox(self.top_frame, textvariable=self.selected_file)
-        self.dropdown.bind("<<ComboboxSelected>>", lambda event: self.load_dataframe())
+        self.dropdown.bind("<<ComboboxSelected>>", lambda event: self.load_data())
         self.button_update = ttk.Button(
             self.top_frame,
             text="auto-update",
@@ -70,13 +81,11 @@ class DataFrameApp:
         self.bottom_frame.pack(side="bottom", fill="both", expand=True)
 
         # Create tree view
-        self.tree_view = ttk.Treeview(self.bottom_frame, show="headings")
-
+        self.tree_view = ttk.Treeview(self.bottom_frame)
+        # Configure tree view
+        self.configure_tree_view()
         # Layout tree view
         self.tree_view.pack(side="left", fill="both", expand=True)
-
-        # Configure tree view
-        self.tree_view["columns"] = ()
 
         # Adjust row and column weights
         root.grid_rowconfigure(2, weight=1)
@@ -86,19 +95,43 @@ class DataFrameApp:
 
         self.load_dropdown_options()
 
+    def configure_tree_view(self) -> None:
+        columns = (
+            "Buy mods",
+            "Sell mods",
+            "Buy price",
+            "Sell price",
+            "Profit",
+            "Last updated",
+        )
+        widths = (
+            150,
+            150,
+            100,
+            100,
+            100,
+            200,
+        )
+        self.tree_view["columns"] = columns
+        self.tree_view.heading("#0", text="Item name", anchor="w")
+        self.tree_view.column("#0", width=400)
+        for column, width in zip(columns, widths):
+            self.tree_view.heading(column=column, text=column, anchor="center")
+            self.tree_view.column(column=column, width=width, anchor="center")
+
     def auto_refresh(self) -> None:
         if self.background_task and self.background_task.is_alive():
             print("refreshed")
-            self.load_dataframe()
+            self.load_data()
             self.root.after(10000, self.auto_refresh)
         else:
             print("last refresh, stop refreshing")
-            self.load_dataframe()
+            self.load_data()
             self.button_update.config(text="auto-update", state=tk.NORMAL)
             self.label_status.config(text="Paused.")
 
     def get_relative_time(self, time: str) -> str:
-        updated_time = datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
+        updated_time = datetime.strptime(time, "%Y-%m-%d %H:%M:%S.%f")
         delta = datetime.now() - updated_time
         if delta.seconds <= 120 and delta.days == 0:
             updated = str(delta.seconds) + "s ago"
@@ -137,48 +170,43 @@ class DataFrameApp:
             messagebox.showwarning("Warning", "No background task is running.")
 
     def load_dropdown_options(self) -> None:
-        # Load available CSV files in the 'Output' folder
-        folder_path = os.path.join(os.getcwd(), "data/profit")
-        files = [file for file in os.listdir(folder_path) if file.endswith(".csv")]
+        # Load available json files in the 'profit strats' folder
+        folder_path = os.path.join(os.getcwd(), "data/profit_strats")
+        files = [file for file in os.listdir(folder_path) if file.endswith(".json")]
         self.dropdown["values"] = files
 
-    def load_dataframe(self) -> None:
-        # Load selected CSV file and display its contents in tree view
-        filename = self.selected_file.get()
-        if filename:
-            try:
-                folder_path = os.path.join(os.getcwd(), "data/profit")
-                file_path = os.path.join(folder_path, filename)
-                self.dataframe = pd.read_csv(file_path)
-                self.display_dataframe_in_treeview()
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to load DataFrame: {e}")
+    def initialize_data(self) -> None:
+        self.datahandler.initialize_from_ninja("Awakened Gems")
+        self.load_data()
 
-    def display_dataframe_in_treeview(self) -> None:
+    def load_data(self) -> None:
+        self.data = self.datahandler.read_all_profit_strats()
+        self.sort_data()
+        self.display_data_in_treeview()
+
+    def display_data_in_treeview(self) -> None:
         # Clear existing tree view
         for child in self.tree_view.get_children():
             self.tree_view.delete(child)
 
-        # Sort dataframe on Profit
-        self.dataframe.sort_values(by="Profit", inplace=True, ascending=False)
-
-        self.tree_view["columns"] = list(self.dataframe.columns)
-        # Format first column
-        self.tree_view.heading(
-            self.dataframe.columns[0], text=self.dataframe.columns[0]
-        )
-        self.tree_view.column(
-            self.dataframe.columns[0], anchor="w", minwidth=350, width=350
-        )
-        # Format other columns
-        for column in self.dataframe.columns[1:]:
-            self.tree_view.heading(column, text=column)
-            self.tree_view.column(column, anchor="e", width=50, minwidth=50)
-
         # Add data
-        for index, row in self.dataframe.iterrows():
-            row["Updated At"] = self.get_relative_time(row["Updated At"])
-            self.tree_view.insert("", "end", values=list(row))
+        for profit_strat in self.data:
+            buy_item = profit_strat.buy_item
+            sell_item = profit_strat.sell_item
+            values = (
+                buy_item.mods_to_str(),
+                sell_item.mods_to_str(),
+                buy_item.value if buy_item.number_listed > 0 else "?",
+                sell_item.value if sell_item.number_listed > 0 else "?",
+                profit_strat.profit if profit_strat.profit > 0 else "?",
+                self.get_relative_time(str(sell_item.updated_at)),
+            )
+            self.tree_view.insert(
+                "", tk.END, text=profit_strat.item_name, values=values
+            )
+
+    def sort_data(self) -> None:
+        self.data = sorted(self.data, key=lambda x: x.profit, reverse=True)
 
     def on_close(self) -> None:
         if self.background_task and self.background_task.is_alive():

@@ -131,7 +131,7 @@ class DataFrameApp:
             self.label_status.config(text="Paused.")
 
     def get_relative_time(self, time: str) -> str:
-        updated_time = datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
+        updated_time = datetime.strptime(time, "%Y-%m-%d %H:%M:%S.%f")
         delta = datetime.now() - updated_time
         if delta.seconds <= 120 and delta.days == 0:
             updated = str(delta.seconds) + "s ago"
@@ -199,7 +199,7 @@ class DataFrameApp:
                 buy_item.value if buy_item.number_listed > 0 else "?",
                 sell_item.value if sell_item.number_listed > 0 else "?",
                 profit_strat.profit if profit_strat.profit > 0 else "?",
-                sell_item.updated_at,
+                self.get_relative_time(str(sell_item.updated_at)),
             )
             self.tree_view.insert(
                 "", tk.END, text=profit_strat.item_name, values=values

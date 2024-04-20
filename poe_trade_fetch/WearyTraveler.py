@@ -183,9 +183,9 @@ class DataFrameApp:
             values = (
                 buy_item.mods_to_str(),
                 sell_item.mods_to_str(),
-                buy_item.value if buy_item.number_listed > 0 else "",
-                sell_item.value if sell_item.number_listed > 0 else "",
-                profit_strat.profit,
+                buy_item.value if buy_item.number_listed > 0 else "?",
+                sell_item.value if sell_item.number_listed > 0 else "?",
+                profit_strat.profit if profit_strat.profit > 0 else "?",
                 sell_item.updated_at,
             )
             self.tree_view.insert(

@@ -129,7 +129,13 @@ class TestDataHandler:
 
     def test_update_profit_strats(
         self, setup_entries, datahandler: DataHandler, profit_strat: ProfitStrat
-    ):
+    ) -> None:
         datahandler.update_profit_strats(profit_strat.buy_item.item_name)
         profit_strats = datahandler.read_profit_strats(profit_strat.buy_item.item_name)
         assert profit_strat in profit_strats
+
+    def test_initialize_from_ninja(self, datahandler: DataHandler) -> None:
+        datahandler.initialize_from_ninja("Awakened Gems")
+        item_entries = datahandler.read_all_item_entries()
+        profit_strats = datahandler.read_profit_strats(item_entries[0].item_name)
+        assert item_entries != [] and profit_strats != []

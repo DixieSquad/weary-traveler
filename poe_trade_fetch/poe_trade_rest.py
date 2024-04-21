@@ -165,8 +165,7 @@ class ItemEntry:
         self.value = round(price_mean, 1)
         self.updated_at = datetime.now()
         self.number_listed = fetcher.number_listed
-        self.result_id = fetcher.result_id
-        self.url = f"https://www.pathofexile.com/trade/search/Necropolis/{self.result_id}"
+        self.url = f"https://www.pathofexile.com/trade/search/Necropolis/{fetcher.result_id}"
 
 
 @dataclass
@@ -320,7 +319,7 @@ class DataHandler:
                 {"min_gem_level": 5, "corrupted": "false", "min_quality": 20},
             ]
         else:
-            NotImplementedError(f"This group: '{group}' is not implemented yet")
+             raise NotImplementedError(f"This group: '{group}' is not implemented yet")
 
         item_names = poe_ninja_scraper.fetch_data(poe_ninja_url)
 

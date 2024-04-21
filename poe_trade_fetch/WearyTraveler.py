@@ -1,12 +1,11 @@
 import os
 import threading
 import tkinter as tk
+import webbrowser as wb
 from datetime import datetime
-from tkinter import ttk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 
-import pandas as pd
-from poe_trade_rest import DataHandler, ProfitStrat, ItemEntry
+from poe_trade_rest import DataHandler, ProfitStrat
 from ttkthemes import ThemedTk
 
 
@@ -119,6 +118,8 @@ class DataFrameApp:
             self.tree_view.heading(column=column, text=column, anchor="center")
             self.tree_view.column(column=column, width=width, anchor="center")
 
+        self.tree_view.bind('<Button-1>', self.open_link)
+
     def auto_refresh(self) -> None:
         if self.background_task and self.background_task.is_alive():
             print("refreshed")
@@ -184,12 +185,33 @@ class DataFrameApp:
         self.sort_data()
         self.display_data_in_treeview()
 
+    def open_link(self, event: tk.Event) -> None:
+        tree = event.widget
+        click_region = tree.identify_region(event.x, event.y)
+        col = tree.identify_column(event.x)
+        if not (col == "#3" or col == "#4"):
+            return
+        
+        if click_region != "cell":
+            return
+        row = int(tree.identify("item", event.x, event.y))
+        link = ''
+        if col == "#3":
+            link = self.data[row].buy_item.url
+        if col == "#4":
+            link = self.data[row].sell_item.url
+        if link != '':
+            wb.open_new_tab(link) 
+
+
+
     def display_data_in_treeview(self) -> None:
         # Clear existing tree view
         for child in self.tree_view.get_children():
             self.tree_view.delete(child)
 
         # Add data
+        iid = 0
         for profit_strat in self.data:
             buy_item = profit_strat.buy_item
             sell_item = profit_strat.sell_item
@@ -202,8 +224,10 @@ class DataFrameApp:
                 self.get_relative_time(str(sell_item.updated_at)),
             )
             self.tree_view.insert(
-                "", tk.END, text=profit_strat.item_name, values=values
+                "", tk.END, text=profit_strat.item_name, values=values, iid=iid
             )
+            iid += 1
+
 
     def sort_data(self) -> None:
         self.data = sorted(self.data, key=lambda x: x.profit, reverse=True)

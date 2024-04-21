@@ -2,11 +2,10 @@ import dataclasses
 import json
 import os
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-import pandas as pd
 import requests
 from dotenv import load_dotenv
 
@@ -37,6 +36,7 @@ class Fetcher:
         self.query = Fetcher.build_query(item_name, modifiers)
         self.listings = []
         self.number_listed = 0
+        self.result_id = ""
 
     @staticmethod
     def build_query(item_name, modifiers):
@@ -100,9 +100,9 @@ class Fetcher:
             r.raise_for_status()
             self.number_listed: int = r.json().get("total", 0)
             result = r.json().get("result", [])[:10]
-            result_id = r.json().get("id", "")
+            self.result_id = r.json().get("id", "")
             text_result = ",".join(result)
-            fetch_url = f"https://www.pathofexile.com/api/trade/fetch/{text_result}?query={result_id}"
+            fetch_url = f"https://www.pathofexile.com/api/trade/fetch/{text_result}?query={self.result_id}"
             response = requests.get(fetch_url, headers=self._header)
             response.raise_for_status()
 
@@ -166,6 +166,7 @@ class ItemEntry:
         self.value = round(price_mean, 1)
         self.updated_at = datetime.now()
         self.number_listed = fetcher.number_listed
+        self.url = f"https://www.pathofexile.com/trade/search/Necropolis/{fetcher.result_id}"
 
 
 @dataclass
@@ -223,7 +224,6 @@ class DataHandler:
             with open(self.profit_strat_file, "w") as json_file:
                 json.dump({}, json_file)
 
-    # TODO: Use write_profit_strat and figure out how we know which buy and which sell entry to take (based on last written item_entry, method on line 220).
     def write_profit_strat(self, profit_strat: ProfitStrat) -> None:
         strats = []
         # The rest is basically the same as write_item_entry
@@ -233,7 +233,6 @@ class DataHandler:
                 strat = ProfitStrat(**s)
                 strats.append(strat)
 
-        # NOTE: We are only converting the json to a list of ProfitStrats to check if profit_strat is in strats. Whereafter we turn everything back into json. There might be a more elegant way of doing this. (I.e., keeping everything in json format. However, we would lose using the __eq__ functionality. So maybe leave it as is.) Same goes for write_item_entry.
         if profit_strat in strats:
             strats[strats.index(profit_strat)] = profit_strat
         else:
@@ -243,7 +242,6 @@ class DataHandler:
             strats = [strat.__dict__ for strat in strats]
             json.dump(strats, f, cls=EnhancedJSONEncoder)
 
-    # TODO: Use write_item_entry and figure out how we know which item_entry to write (based on oldest entry first)
     def write_item_entry(self, item_entry: ItemEntry) -> None:
         items = self.read_all_item_entries()
 
@@ -322,7 +320,7 @@ class DataHandler:
                 {"min_gem_level": 5, "corrupted": "false", "min_quality": 20},
             ]
         else:
-            NotImplementedError(f"This group: '{group}' is not implemented yet")
+             raise NotImplementedError(f"This group: '{group}' is not implemented yet")
 
         item_names = poe_ninja_scraper.fetch_data(poe_ninja_url)
 

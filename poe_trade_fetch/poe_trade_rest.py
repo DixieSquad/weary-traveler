@@ -6,10 +6,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+import poe_ninja_scraper as poe_ninja_scraper
 import requests
 from dotenv import load_dotenv
-
-from poe_trade_fetch import poe_ninja_scraper
 
 load_dotenv()
 

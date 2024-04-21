@@ -36,6 +36,7 @@ class Fetcher:
         self.query = Fetcher.build_query(item_name, modifiers)
         self.listings = []
         self.number_listed = 0
+        self.result_id = ""
 
     @staticmethod
     def build_query(item_name, modifiers):

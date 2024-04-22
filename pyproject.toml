@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "poe-trade-fetch"
-version = "0.1.0"
+name = "weary-traveler"
+version = "0.2.0"
 description = ""
-authors = ["Ramonnn <29675067+Ramonnn@users.noreply.github.com>"]
+authors = ["Ramonnn <29675067+Ramonnn@users.noreply.github.com>", 29178202+NimbusNiles@users.noreply.github.com]
 readme = "README.md"
 
 [tool.poetry.dependencies]

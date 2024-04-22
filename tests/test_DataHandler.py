@@ -1,5 +1,5 @@
 import pytest
-from poe_trade_fetch.poe_trade_rest import DataHandler, ItemEntry, ProfitStrat
+from weary_traveler.poe_trade_rest import DataHandler, ItemEntry, ProfitStrat
 from datetime import datetime, timedelta
 import os
 import shutil

@@ -1,0 +1,59 @@
+# This workflow will install application and dependencies via Poetry and run pytest
+
+name: Python application
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    # Set up Python
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.11"
+        
+    # Cache poetry if available
+    - name: cache poetry install
+      uses: actions/cache@v3
+      with:
+        path: ~/.local
+        key: poetry-1.8.2-0
+
+    # Install poetry if needed and create venvs
+    - uses: snok/install-poetry@v1
+      with:
+        version: 1.8.2
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    # Cache dependensies
+    - name: cache deps
+      id: cache-deps
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: pydeps-${{ hashFiles('**/poetry.lock') }}
+
+    # Install dependencies
+    - run: poetry install --no-interaction --no-root
+      if: steps.cache-deps.outputs.cache-hit != 'true'
+
+    # Install application
+    - run: poetry install --no-interaction
+
+    # Run pytests
+    - name: Test with pytest
+      run: poetry run pytest

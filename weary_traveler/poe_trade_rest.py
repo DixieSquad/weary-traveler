@@ -165,7 +165,9 @@ class ItemEntry:
         self.value = round(price_mean, 1)
         self.updated_at = datetime.now()
         self.number_listed = fetcher.number_listed
-        self.url = f"https://www.pathofexile.com/trade/search/Necropolis/{fetcher.result_id}"
+        self.url = (
+            f"https://www.pathofexile.com/trade/search/Necropolis/{fetcher.result_id}"
+        )
 
 
 @dataclass
@@ -192,6 +194,29 @@ class ProfitStrat:
             and self.buy_item == other.buy_item
             and self.sell_item == other.sell_item
         )
+
+    def isvalid(self) -> bool:
+        buy_item = self.buy_item
+        sell_item = self.sell_item
+
+        # Same item:
+        if buy_item.modifiers == sell_item.modifiers:
+            return False
+
+        # No profit:
+        if buy_item.value > sell_item.value:
+            return False
+
+        # No way to 'uncorrupt' an item:
+        if "corrupted" in sell_item.modifiers and "corrupted" in buy_item.modifiers:
+            if (
+                sell_item.modifiers["corrupted"] == "false"
+                and buy_item.modifiers["corrupted"] == "true"
+            ):
+                return False
+
+        # No invalid reasons:
+        return True
 
 
 class EnhancedJSONEncoder(json.JSONEncoder):
@@ -319,7 +344,7 @@ class DataHandler:
                 {"min_gem_level": 5, "corrupted": "false", "min_quality": 20},
             ]
         else:
-             raise NotImplementedError(f"This group: '{group}' is not implemented yet")
+            raise NotImplementedError(f"This group: '{group}' is not implemented yet")
 
         item_names = poe_ninja_scraper.fetch_data(poe_ninja_url)
 

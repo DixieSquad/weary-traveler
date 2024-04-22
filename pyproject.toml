@@ -20,3 +20,8 @@ pytest = "^8.1.1"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "weary_traveler"
+]

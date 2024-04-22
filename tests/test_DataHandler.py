@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 import os
 import shutil
 
+IN_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
+
 
 @pytest.fixture()
 def prep_and_clean_data():
@@ -136,6 +138,9 @@ class TestDataHandler:
         )
         assert profit_strat in profit_strats
 
+    @pytest.mark.skipif(
+        IN_GITHUB_ACTIONS, reason="Test takes too long for Github Actions."
+    )
     def test_initialize_from_ninja(self, datahandler: DataHandler) -> None:
         datahandler.initialize_from_ninja("Awakened Gems")
         item_entries = datahandler.read_all_item_entries()

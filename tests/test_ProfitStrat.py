@@ -16,7 +16,7 @@ def item_entry() -> ItemEntryFactory:
 
 def test_ProfitStrat_valid(item_entry) -> None:
     buy_entry: ItemEntry = item_entry.get(value=1, mods={"test": 1})
-    sell_entry: ItemEntry = item_entry.get(value=2, mods={"test": 1})
+    sell_entry: ItemEntry = item_entry.get(value=2, mods={"test": 2})
     profit_strat = ProfitStrat(
         buy_entry.item_name, buy_item=buy_entry, sell_item=sell_entry
     )
